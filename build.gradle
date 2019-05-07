@@ -18,7 +18,7 @@ apply plugin: 'java'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-group = 'com.ch'
+group = 'com.ch.cloud'
 version = '1.0.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
