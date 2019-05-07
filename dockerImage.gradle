@@ -1,0 +1,30 @@
+apply plugin: 'docker'
+
+jar {
+	version = 'latest'
+}
+
+task buildDocker(type: Docker, dependsOn: build, group: "custom") {
+	push = true
+	applicationName = jar.baseName
+	tagVersion = jar.version
+	dockerfile = file('src/main/docker/Dockerfile')
+	doFirst {
+		copy {
+			from jar
+			into stageDir
+		}
+	}
+}
+
+docker {
+	useApi true
+	hostUrl 'http://192.168.1.110:5678'
+	apiUsername 'docker-ch'
+	apiPassword '123456'
+	apiEmail 'admin@ch-cloud.com'
+//	maintainer 'Guillaume J. Charmes "admin@ch-cloud.com"'
+	group ''
+}
+
+

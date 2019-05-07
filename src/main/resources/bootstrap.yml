@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: ch-gateway
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 10.202.10.66:8848
+      config:
+        server-addr: 10.202.10.66:8848
+        shared-dataids: ch-gateway-${spring.profiles.active}.yml
