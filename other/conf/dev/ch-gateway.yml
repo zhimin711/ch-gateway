@@ -1,5 +1,5 @@
 server:
-    port: 8081
+  port: 7001
 
 #API网关配置
 zuul:
@@ -16,13 +16,13 @@ zuul:
       sensitiveHeaders:
       custom-sensitive-headers: true  #http://blog.didispace.com/spring-cloud-zuul-cookie-redirect/ zuul授权码跳转问题
       #重定向到的服务（根据服务id名称从注册中心获取服务地址）
-      serviceId:  ch-auth
+      serviceId:  ch-sso
     admin: #生产者服务
       #响应的路径
       path: /admin/**
       sensitiveHeaders:
       #重定向到的服务（根据服务id名称从注册中心获取服务地址）
-      serviceId:  ch-admin
+      serviceId:  ch-upms
     blog: #生产者服务
       #响应的路径
       path: /blog/**
@@ -35,8 +35,7 @@ zuul:
 security:
   oauth2:
     resource:
-      # user-info-uri:  http://192.168.0.103/auth/user
-      user-info-uri:  http://localhost:8084/auth/user
+      user-info-uri:  http://localhost:7000/auth/user
       prefer-token-info: true
       # loadBalanced: true #开启获取授权失败
 ##############end#####################
@@ -59,7 +58,8 @@ hystrix:
 
 logging:
   config: classpath:conf/logback-test.xml
-  path: logs/ch-gateway
+  path: logs
   level:
     com.ch: debug
     org.springframework.cloud: debug
+    com.alibaba.nacos.client: warn

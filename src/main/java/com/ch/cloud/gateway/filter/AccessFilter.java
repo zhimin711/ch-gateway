@@ -1,5 +1,6 @@
 package com.ch.cloud.gateway.filter;
 
+import com.ch.Constants;
 import com.netflix.zuul.ZuulFilter;
 import com.netflix.zuul.context.RequestContext;
 import org.slf4j.Logger;
@@ -19,6 +20,8 @@ import javax.servlet.http.HttpServletRequest;
 public class AccessFilter extends ZuulFilter {
 
     private Logger logger = LoggerFactory.getLogger(AccessFilter.class);
+
+    private final static String[] WHITELIST = {"/auth/", "/sso/", "/static/", "/assets/"};
 
     /**
      * 过滤器的类型 pre表示请求在路由之前被过滤
@@ -42,17 +45,19 @@ public class AccessFilter extends ZuulFilter {
 
     /**
      * 过滤器是否会被执行
+     * //返回一个boolean类型来判断该过滤器是否要执行，所以通过此函数可实现过滤器的开关。
+     * true:总是生效，false:不生效
      *
-     * @return true
+     * @return true:总是生效，false:不生效
      */
     @Override
-    public boolean shouldFilter() { RequestContext ctx = RequestContext.getCurrentContext();
+    public boolean shouldFilter() {
+        RequestContext ctx = RequestContext.getCurrentContext();
         HttpServletRequest request = ctx.getRequest();
         String requestURI = request.getRequestURI();
-        if (requestURI.toLowerCase().startsWith("/auth/")) {
-            return false;
+        for (String s : WHITELIST) {
+            if (requestURI.toLowerCase().startsWith(s)) return false;
         }
-        //返回一个boolean类型来判断该过滤器是否要执行，所以通过此函数可实现过滤器的开关。true:总是生效，false:不生效
         return true;
     }
 
@@ -65,7 +70,7 @@ public class AccessFilter extends ZuulFilter {
     public Object run() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         RequestContext requestContext = RequestContext.getCurrentContext();
-        requestContext.addZuulRequestHeader("X-AUTH-USER", authentication.getPrincipal().toString());
+        requestContext.addZuulRequestHeader(Constants.TOKEN_USER, authentication.getPrincipal().toString());
 
         HttpServletRequest request = requestContext.getRequest();
         logger.info("send {} request to {} by {}", request.getMethod(), request.getRequestURL().toString(), authentication.getPrincipal().toString());
