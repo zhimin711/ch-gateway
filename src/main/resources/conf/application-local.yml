@@ -38,9 +38,11 @@ zuul:
   #添加代理头
   add-proxy-headers: true
 
-
 security:
   oauth2:
+    client:
+      client-id: ChaoHua
+      client-secret: secret
     resource:
       user-info-uri:  http://localhost:8084/auth/user
       prefer-token-info: true
