@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ch.cloud.gateway.mapper.RouteMapper">
+  <resultMap id="BaseResultMap" type="com.ch.cloud.gateway.model.Route">
+    <!--
+      WARNING - @mbggenerated
+    -->
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="path" jdbcType="VARCHAR" property="path" />
+    <result column="service_id" jdbcType="VARCHAR" property="serviceId" />
+    <result column="url" jdbcType="VARCHAR" property="url" />
+    <result column="strip_prefix" jdbcType="BIT" property="stripPrefix" />
+    <result column="retryable" jdbcType="BIT" property="retryable" />
+    <result column="status" jdbcType="CHAR" property="status" />
+    <result column="description" jdbcType="VARCHAR" property="description" />
+    <result column="persist" jdbcType="BIT" property="persist" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, path, service_id, url, strip_prefix, retryable, status, description, persist
+  </sql>
+</mapper>

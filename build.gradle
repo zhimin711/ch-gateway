@@ -18,6 +18,8 @@ apply plugin: 'java'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
+apply from: "mybatisGenerator.gradle"
+
 group = 'com.ch.cloud'
 version = '1.0.0-SNAPSHOT'
 sourceCompatibility = 1.8
@@ -46,10 +48,14 @@ dependencies {
     testImplementation('org.springframework.boot:spring-boot-starter-test')
 //		compile 'org.springframework.boot:spring-boot-starter-jetty'
     implementation("com.ch:ch-core:${chVersion}")
+    implementation("com.ch:ch-jdbc-mybatis:${chVersion}")
 
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
 
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:1.1.1'
+    implementation "mysql:mysql-connector-java:5.1.30"
+    implementation 'com.alibaba:druid:1.1.15'
 
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -62,6 +68,10 @@ dependencies {
 
     implementation 'org.springframework.security.oauth:spring-security-oauth2:2.3.3.RELEASE'
     implementation "io.springfox:springfox-swagger2:${swagger2Version}"
+    
+    // https://mvnrepository.com/artifact/org.projectlombok/lombok
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.8'
+
 }
 
 dependencyManagement {

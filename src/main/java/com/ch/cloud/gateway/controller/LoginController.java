@@ -27,9 +27,9 @@ public class LoginController {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @NacosValue(value = "${security.oauth2.client.client-id}", autoRefreshed = true)
+//    @NacosValue(value = "${security.oauth2.client.client-id}", autoRefreshed = true)
     private String clientId;
-    @NacosValue(value = "${security.oauth2.client.client-id}", autoRefreshed = true)
+//    @NacosValue(value = "${security.oauth2.client.client-id}", autoRefreshed = true)
     private String clientSecret;
 
     /**
