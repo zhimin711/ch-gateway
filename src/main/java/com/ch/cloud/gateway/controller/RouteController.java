@@ -1,5 +1,6 @@
 package com.ch.cloud.gateway.controller;
 
+import com.ch.cloud.gateway.locator.ZuulRouteLocator;
 import com.ch.cloud.gateway.model.Route;
 import com.ch.cloud.gateway.service.IRouteService;
 import com.ch.result.InvokerPage;
@@ -17,19 +18,19 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 网关智能路由
  *
- * @author: liuyadu
- * @date: 2019/3/12 15:12
+ * @author zhimin
+ * @date 2019/5/12 15:12
  * @description:
  */
 @Api(tags = "网关智能路由")
 @RestController
-@RequestMapping("/gateway/route")
+@RequestMapping("gateway/route")
 public class RouteController {
 
     @Autowired
     private IRouteService routeService;
-//    @Autowired
-//    private OpenRestTemplate openRestTemplate;
+    @Autowired
+    private ZuulRouteLocator zuulRoutesLocator;
 
     /**
      * 获取分页路由列表
@@ -60,7 +61,7 @@ public class RouteController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id", required = true, value = "路由ID", paramType = "path"),
     })
-    @GetMapping("{id}/info")
+    @GetMapping("{id}")
     public Result<Route> getRoute(@PathVariable("id") Long id) {
         return ResultUtils.wrapFail(() -> routeService.find(id));
     }
@@ -89,7 +90,7 @@ public class RouteController {
 
             if (c > 0) {
                 // 刷新网关
-//                openRestTemplate.refreshGateway();
+                zuulRoutesLocator.doRefresh();
             }
             return c;
         });
@@ -111,13 +112,15 @@ public class RouteController {
             @ApiImplicitParam(name = "status", allowableValues = "0,1", defaultValue = "1", value = "是否启用", paramType = "form"),
             @ApiImplicitParam(name = "description", value = "描述", paramType = "form")
     })
-    @PostMapping({"save/{id}"})
+    @PostMapping("save/{id}")
 
     public Result<Integer> edit(@PathVariable int id, @RequestBody Route record) {
         return ResultUtils.wrapFail(() -> {
             int c = routeService.updateWithNull(record);
-            // 刷新网关
-//        openRestTemplate.refreshGateway();
+            if (c > 0) {
+                // 刷新网关
+                zuulRoutesLocator.doRefresh();
+            }
             return c;
         });
 
@@ -134,12 +137,16 @@ public class RouteController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id", required = true, value = "id", paramType = "form"),
     })
-    @PostMapping({"delete"})
+    @PostMapping("delete")
     public Result<Integer> delete(Long id) {
         return ResultUtils.wrapFail(() -> {
-            // 刷新网关
-//        openRestTemplate.refreshGateway();
-            return routeService.delete(id);
+
+            int c = routeService.delete(id);
+            if (c > 0) {
+                // 刷新网关
+                zuulRoutesLocator.doRefresh();
+            }
+            return c;
         });
     }
 }
