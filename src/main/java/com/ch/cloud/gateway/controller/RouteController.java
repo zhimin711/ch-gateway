@@ -45,7 +45,7 @@ public class RouteController {
                                   @PathVariable(value = "size") int pageSize) {
 
         return ResultUtils.wrapPage(() -> {
-            PageInfo<Route> page = routeService.findPage(record, pageNum, pageSize);
+            PageInfo<Route> page = routeService.findPage(pageNum, pageSize, record);
             return new InvokerPage.Page<>(page.getTotal(), page.getList());
         });
     }
