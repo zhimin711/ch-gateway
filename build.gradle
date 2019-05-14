@@ -33,7 +33,7 @@ repositories {
     maven { url "https://repo.spring.io/milestone" }
 }
 ext {
-    chVersion = '1.0.2-SNAPSHOT'
+    chVersion = '1.0.3-SNAPSHOT'
 
 //	springCloudVersion = 'Edgware.RELEASE'
     springCloudVersion = 'Greenwich.RELEASE'
@@ -48,7 +48,7 @@ dependencies {
     testImplementation('org.springframework.boot:spring-boot-starter-test')
 //		compile 'org.springframework.boot:spring-boot-starter-jetty'
     implementation("com.ch:ch-core:${chVersion}")
-    implementation("com.ch:ch-jdbc-mybatis:${chVersion}")
+    implementation("com.ch:ch-mybatis:${chVersion}")
 
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
