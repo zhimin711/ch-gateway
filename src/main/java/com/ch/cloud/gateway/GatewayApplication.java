@@ -1,14 +1,14 @@
 package com.ch.cloud.gateway;
 
-import com.ch.cloud.gateway.filter.AccessFilter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.reactive.config.EnableWebFlux;
 
 /**
  * desc:
@@ -18,7 +18,7 @@ import org.springframework.web.filter.CorsFilter;
  */
 @SpringBootApplication
 @EnableDiscoveryClient
-@EnableZuulProxy
+@EnableWebFlux
 public class GatewayApplication {
 
     /**
@@ -26,7 +26,7 @@ public class GatewayApplication {
      *
      * @return
      */
-    @Bean
+    /*@Bean
     public CorsFilter corsFilter() {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         final CorsConfiguration config = new CorsConfiguration();
@@ -37,14 +37,7 @@ public class GatewayApplication {
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
-
-    @Bean
-    public AccessFilter accessFilter() {
-       return new AccessFilter();
-    }
-
-
-
+*/
     public static void main(String[] args) {
         SpringApplication.run(GatewayApplication.class, args);
     }

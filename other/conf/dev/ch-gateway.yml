@@ -57,7 +57,7 @@ hystrix:
 ###超时配置###
 
 logging:
-  config: classpath:conf/logback-test.xml
+  config: classpath:config/logback-test.xml
   path: logs
   level:
     com.ch: debug
