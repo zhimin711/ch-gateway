@@ -3,7 +3,7 @@ package com.ch.cloud.gateway.model;
 import java.io.Serializable;
 
 /**
- * RouteDto À©Õ¹¶ÔÏó
+ * RouteDto æ‰©å±•å¯¹è±¡
  * 
  * @author zhimi
  * @date Mon May 13 22:36:23 CST 2019
@@ -13,37 +13,37 @@ public class RouteDto implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Ö÷¼ü
+     * ä¸»é”®
      */
     private Long id;
 
     /**
-     * Â·¾¶
+     * è·¯å¾„
      */
     private String path;
 
     /**
-     * ·şÎñID
+     * æœåŠ¡ID
      */
     private String serviceId;
 
     /**
-     * ÍêÕûµØÖ·
+     * å®Œæ•´åœ°å€
      */
     private String url;
 
     /**
-     * ºöÂÔÇ°×º
+     * å¿½ç•¥å‰ç¼€
      */
     private Boolean stripPrefix;
 
     /**
-     * 0-²»ÖØÊÔ 1-ÖØÊÔ
+     * 0-ä¸é‡è¯• 1-é‡è¯•
      */
     private Boolean retryable;
 
     /**
-     * ×´Ì¬:0-ÎŞĞ§ 1-ÓĞĞ§
+     * çŠ¶æ€:0-æ— æ•ˆ 1-æœ‰æ•ˆ
      */
     private String status;
 
@@ -53,7 +53,7 @@ public class RouteDto implements Serializable {
     private String description;
 
     /**
-     * ÊÇ·ñÎª±£ÁôÊı¾İ:0-·ñ 1-ÊÇ
+     * æ˜¯å¦ä¸ºä¿ç•™æ•°æ®:0-å¦ 1-æ˜¯
      */
     private Boolean persist;
 
