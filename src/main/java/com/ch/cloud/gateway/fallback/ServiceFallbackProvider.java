@@ -56,7 +56,7 @@ public class ServiceFallbackProvider implements FallbackProvider {
             public InputStream getBody() throws IOException {
                 //响应体
                 ObjectMapper objectMapper = new ObjectMapper();
-                String content = objectMapper.writeValueAsString(Result.error(PubError.CONNECT, route + "微服务不可用，请稍后再试..."));
+                String content = objectMapper.writeValueAsString(Result.error(PubError.CONNECT, route + "服务不可用，请稍后再试..."));
                 return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
             }
 
