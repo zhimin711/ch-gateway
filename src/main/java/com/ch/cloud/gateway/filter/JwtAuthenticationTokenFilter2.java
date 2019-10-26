@@ -3,7 +3,6 @@ package com.ch.cloud.gateway.filter;
 import com.ch.Constants;
 import com.ch.cloud.client.dto.PermissionDto;
 import com.ch.cloud.gateway.cli.SsoClientService;
-import com.ch.cloud.gateway.cli.UpmsClientService;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.google.common.collect.Lists;
@@ -23,8 +22,6 @@ public class JwtAuthenticationTokenFilter2 extends OncePerRequestFilter {
 
     @Autowired
     private SsoClientService ssoClientService;
-    @Autowired
-    private UpmsClientService upmsClientService;
 
 
     @Override

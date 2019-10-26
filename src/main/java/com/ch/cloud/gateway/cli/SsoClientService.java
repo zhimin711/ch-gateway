@@ -10,4 +10,7 @@ public interface SsoClientService {
 
     @GetMapping("login/token/validate")
     Result<String> tokenValidate(@RequestParam("token") String token);
+
+    @GetMapping("login/token/permissions")
+    Result<String> tokenPermissions(@RequestParam("token") String token);
 }

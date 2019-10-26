@@ -39,7 +39,7 @@ ext {
 dependencies {
     implementation("com.ch:ch-core:${chVersion}")
     implementation("com.ch:ch-mybatis:${chVersion}")
-    implementation("com.ch:ch-upms-api:${chUpmsApiVersion}")
+//    implementation("com.ch:ch-upms-api:${chUpmsApiVersion}")
 
 
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"

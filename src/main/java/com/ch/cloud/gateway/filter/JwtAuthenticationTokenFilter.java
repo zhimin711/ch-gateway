@@ -2,12 +2,10 @@ package com.ch.cloud.gateway.filter;
 
 import com.ch.Constants;
 import com.ch.cloud.gateway.cli.SsoClientService;
-import com.ch.cloud.gateway.cli.UpmsClientService;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.JSONUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -29,8 +27,6 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     @Autowired
     private SsoClientService ssoClientService;
-    @Autowired
-    private UpmsClientService upmsClientService;
 
 
     @Override
