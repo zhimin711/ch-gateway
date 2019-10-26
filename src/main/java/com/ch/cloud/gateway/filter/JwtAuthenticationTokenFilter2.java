@@ -41,7 +41,7 @@ public class JwtAuthenticationTokenFilter2 extends OncePerRequestFilter {
                 List<PermissionDto> permissions = Lists.newArrayList();
                 boolean ok = false;
                 for (PermissionDto dto : permissions) {
-                    AntPathRequestMatcher requestMatcher = new AntPathRequestMatcher(dto.getUrl(), dto.getCode());
+                    AntPathRequestMatcher requestMatcher = new AntPathRequestMatcher(dto.getUrl(), dto.getMethod());
                     ok = requestMatcher.matches(request);
                 }
                 if (!ok) {

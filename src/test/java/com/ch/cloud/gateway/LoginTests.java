@@ -4,6 +4,8 @@ import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -23,5 +25,14 @@ public class LoginTests {
         // 强制移除 原来的请求头,防止token失效
         headers.remove(HttpHeaders.AUTHORIZATION);
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(postParameters, headers);
+    }
+
+    @Test
+    public void testUrl(){
+
+//        AntPathRequestMatcher requestMatcher = new AntPathRequestMatcher("/user/[0-9]/[0-9]");
+        AntPathMatcher pathMatcher = new AntPathMatcher("/");
+        System.out.println(pathMatcher.match("/user/{page:[0-9]+}/{size:[0-9]+}","/user/12/10"));
+        System.out.println(pathMatcher.match("/user/{id:[0-9]+}","/user/a"));
     }
 }
