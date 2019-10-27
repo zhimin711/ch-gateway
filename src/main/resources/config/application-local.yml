@@ -1,7 +1,9 @@
 server:
-    port: 8081
+    port: 7001
 
 spring:
+  application:
+    name: ch-gateway
   servlet:
     multipart:
       max-file-size: 100MB
@@ -11,17 +13,22 @@ spring:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.jdbc.Driver
     #?useUnicode=true&amp;characterEncoding=utf8&amp;useSSL=false
-    url: jdbc:mysql://192.168.1.8:3306/gateway
+    url: jdbc:mysql://192.168.1.104:3306/gateway
     username: admin
     password: 123456
-  application:
-    name: ch-gateway
   cloud:
     gateway:
       discovery:
         locator:
           enabled: true  #表明gateway开启服务注册和发现的功能，并且spring cloud gateway自动根据服务发现为每一个服务创建了一个router，这个router将以服务名开头的请求路径转发到对应的服务。
           lowerCaseServiceId: true   #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了），比如以/service-hi/*的请求路径被路由转发到服务名为service-hi的服务上。
+          filters:
+            - StripPrefix=1
+      routes:
+        - id: sina
+          uri: https://www.sina.com.cn/
+          predicates:
+            - Path=/sina/**
           filters:
             - StripPrefix=1
   main:
@@ -31,14 +38,7 @@ management:
     web:
       exposure:
         include: '*'
-security:
-  oauth2:
-    client:
-      client-id: ChaoHua
-      client-secret: secret
-    resource:
-      user-info-uri:  http://localhost:8084/auth/user
-      prefer-token-info: true
+
 #      loadBalanced: true
 ##############end#####################
 ####超时配置####

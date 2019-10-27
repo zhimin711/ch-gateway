@@ -1,14 +1,17 @@
 package com.ch.cloud.gateway.filter;
 
 import com.ch.Constants;
+import com.ch.cloud.client.dto.PermissionDto;
 import com.ch.cloud.gateway.cli.SsoClientService;
+import com.ch.cloud.gateway.cli.UpmsClientService;
+import com.ch.cloud.gateway.pojo.UserInfo;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.JSONUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
@@ -18,15 +21,19 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+@Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private String[] skipAuthUrls;
 
-    @Autowired
+    @Resource
     private SsoClientService ssoClientService;
+    @Resource
+    private UpmsClientService upmsClientService;
 
 
     @Override
@@ -42,18 +49,22 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         ServerHttpResponse resp = exchange.getResponse();
         if (CommonUtils.isEmpty(token)) {
             //没有token
-//            return authError(resp,"请登陆");
+            return authError(resp, "请登陆");
         } else {
             //有token
 
-            Result<String> res = ssoClientService.tokenValidate(token);
+            Result<UserInfo> res = ssoClientService.tokenInfo(token);
+            if (res.isEmpty()) {
+                return authError(resp, "TOKEN失效");
+            }
+            Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(res.get().getRoleId());
 
             //将现在的request，添加当前身份
-            ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, res.get()).build();
+            ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, res.get().getUsername()).build();
             ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
             return chain.filter(mutableExchange);
         }
-        return null;
+//        return null;
     }
 
     private Mono<Void> out1(ServerWebExchange exchange) {
