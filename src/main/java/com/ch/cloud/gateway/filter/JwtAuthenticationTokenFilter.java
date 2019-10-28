@@ -9,6 +9,7 @@ import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.JSONUtils;
+import com.google.common.collect.Lists;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
@@ -34,11 +35,12 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private String[] skipAuthUrls = {};
 
+    private Collection<PermissionDto> skipPermissions;
+
     @Resource
     private SsoClientService ssoClientService;
     @Resource
     private UpmsClientService upmsClientService;
-
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -47,31 +49,37 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         if (checkSsoUrl(url)) {
             return chain.filter(exchange);
         }
-        if (null != skipAuthUrls && Arrays.asList(skipAuthUrls).contains(url)) {
-            return chain.filter(exchange);
-        }
-
         //获取token
-        String token = exchange.getRequest().getHeaders().getFirst("Authorization");
+        String token = exchange.getRequest().getHeaders().getFirst(Constants.TOKEN_HEADER2);
         ServerHttpResponse resp = exchange.getResponse();
         if (CommonUtils.isEmpty(token)) {
             //没有token
-            return authError(resp, "请登陆");
+            return authError(resp, Result.error(PubError.NOT_LOGIN, "请登陆"));
         } else {
             //有token
 
             Result<UserInfo> res = ssoClientService.tokenInfo(token);
             if (res.isEmpty()) {
-                return authError(resp, "TOKEN失效");
+                return authError(resp, Result.error(PubError.INVALID, "TOKEN 失效"));
             }
-            Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(res.get().getRoleId());
+            if (skipPermissions == null) {
+                Result<PermissionDto> res3 = upmsClientService.findHiddenPermissions();
+                skipPermissions = res3.isEmpty() ? Lists.newArrayList() : res3.getRows();
+            }
+            if (!skipPermissions.isEmpty()) {
+                boolean ok = checkPermissions(skipPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+                if (ok) {
+                    return chain.filter(exchange);
+                }
+            }
 
+            Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(res.get().getRoleId());
             if (res2.isEmpty()) {
-                return authError(resp, "未授权");
+                return authError(resp, Result.error(PubError.NOT_AUTH));
             }
             boolean ok = checkPermissions(res2.getRows(), exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (!ok) {
-                return authError(resp, "未授权");
+                return authError(resp, Result.error(PubError.NOT_AUTH));
             }
             //将现在的request，添加当前身份
             ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, res.get().getUsername()).build();
@@ -87,9 +95,11 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         for (Map.Entry<String, List<PermissionDto>> entry : permissionMap.entrySet()) {
             String url = entry.getKey();
             boolean ok = pathMatcher.match(url, path);
-            for (PermissionDto dto : permissionMap.get(url)) {
-                if (ok && (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod()))) {
-                    return true;
+            if (ok) {
+                for (PermissionDto dto : permissionMap.get(url)) {
+                    if (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod())) {
+                        return true;
+                    }
                 }
             }
         }
@@ -115,15 +125,15 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     /**
      * 认证错误输出
      *
-     * @param resp 响应对象
-     * @param mess 错误信息
+     * @param resp   响应对象
+     * @param result 错误信息
      * @return
      */
-    private Mono<Void> authError(ServerHttpResponse resp, String mess) {
+    private Mono<Void> authError(ServerHttpResponse resp, Result result) {
         resp.setStatusCode(HttpStatus.UNAUTHORIZED);
         resp.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
-        Result<Object> res = Result.error(PubError.NOT_AUTH, mess);
-        String returnStr = JSONUtils.toJson(res);
+//        Result<Object> res = Result.error(PubError.NOT_AUTH, mess);
+        String returnStr = JSONUtils.toJson(result);
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
         return resp.writeWith(Flux.just(buffer));
     }
