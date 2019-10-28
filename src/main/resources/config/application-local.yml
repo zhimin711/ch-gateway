@@ -31,14 +31,14 @@ spring:
             - Path=/sina/**
           filters:
             - StripPrefix=1
+        - id: upms
+          uri:  lb://ch-upms
+          predicates:
+            - Path=/upms/**
+          filters:
+            - StripPrefix=1
   main:
     allow-bean-definition-overriding: true
-management:
-  endpoints:
-    web:
-      exposure:
-        include: '*'
-
 #      loadBalanced: true
 ##############end#####################
 ####超时配置####
@@ -66,4 +66,5 @@ logging:
   path: logs/ch-gateway
   level:
     com.ch: debug
-    org.springframework.cloud: debug
+    org.springframework.cloud: warn
+    com.alibaba.nacos: warn

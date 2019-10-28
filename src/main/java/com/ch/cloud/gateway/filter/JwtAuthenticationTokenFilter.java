@@ -14,9 +14,12 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,6 +27,7 @@ import reactor.core.publisher.Mono;
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
@@ -59,12 +63,31 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             }
             Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(res.get().getRoleId());
 
+            if (res2.isEmpty()) {
+                return authError(resp, "未授权");
+            }
+            boolean ok = checkPermissions(res2.getRows(), exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+            if (!ok) {
+                return authError(resp, "未授权");
+            }
             //将现在的request，添加当前身份
             ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, res.get().getUsername()).build();
             ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
             return chain.filter(mutableExchange);
         }
 //        return null;
+    }
+
+    private boolean checkPermissions(Collection<PermissionDto> permissions, String path, HttpMethod method) {
+        AntPathMatcher pathMatcher = new AntPathMatcher("/");
+        for (PermissionDto dto : permissions) {
+            boolean ok = pathMatcher.match(dto.getUrl(), path);
+            if (ok && (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod()))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Mono<Void> out1(ServerWebExchange exchange) {
