@@ -28,6 +28,9 @@ import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
@@ -80,10 +83,14 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private boolean checkPermissions(Collection<PermissionDto> permissions, String path, HttpMethod method) {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        for (PermissionDto dto : permissions) {
-            boolean ok = pathMatcher.match(dto.getUrl(), path);
-            if (ok && (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod()))) {
-                return true;
+        Map<String, List<PermissionDto>> permissionMap = permissions.stream().collect(Collectors.groupingBy(PermissionDto::getUrl));
+
+        if (permissionMap.containsKey(path)) {
+            for (PermissionDto dto : permissionMap.get(path)) {
+                boolean ok = pathMatcher.match(dto.getUrl(), path);
+                if (ok && (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod()))) {
+                    return true;
+                }
             }
         }
 
