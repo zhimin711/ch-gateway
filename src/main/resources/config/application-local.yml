@@ -1,6 +1,10 @@
 server:
     port: 7001
 
+jasypt:
+  encryptor:
+    password: abc123
+    algorithm: PBEWithMD5AndDES
 spring:
   application:
     name: ch-gateway
@@ -10,12 +14,20 @@ spring:
       max-request-size: 100MB
   #API网关配置
   datasource:
-    type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.jdbc.Driver
-    #?useUnicode=true&amp;characterEncoding=utf8&amp;useSSL=false
-    url: jdbc:mysql://192.168.1.104:3306/gateway
+    url: jdbc:mysql://www.zhaohuajike.cn:3306/dev_ch_gateway
     username: admin
-    password: 123456
+    password: ENC(hfO3JFDCY2HB6x+j1obZOg==)
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: DatebookHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
   cloud:
     gateway:
       discovery:
@@ -25,10 +37,10 @@ spring:
           filters:
             - StripPrefix=1
       routes:
-        - id: sina
-          uri: https://www.sina.com.cn/
+        - id: sso
+          uri: lb://ch-sso
           predicates:
-            - Path=/sina/**
+            - Path=/auth/**
           filters:
             - StripPrefix=1
         - id: upms
@@ -42,23 +54,23 @@ spring:
 #      loadBalanced: true
 ##############end#####################
 ####超时配置####
-#ribbon:
-#  ReadTimeout: 10000
-#  ConnectTimeout: 10000
-#  MaxAutoRetries: 1
-#  MaxAutoRetriesNextServer: 2
-#  http:
-#    client:
-#      enabled: true
-#hystrix:
-#  command:
-#    default:
-#      execution:
-#        timeout:
-#          enabled: true
-#        isolation:
-#          thread:
-#            timeoutInMilliseconds: 600000
+ribbon:
+  ReadTimeout: 10000
+  ConnectTimeout: 10000
+  MaxAutoRetries: 1
+  MaxAutoRetriesNextServer: 2
+  http:
+    client:
+      enabled: true
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          thread:
+            timeoutInMilliseconds: 600000
 ###超时配置###
 
 logging:

@@ -26,16 +26,13 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private String[] skipAuthUrls;
+    private String[] skipAuthUrls = {};
 
     @Resource
     private SsoClientService ssoClientService;
@@ -47,6 +44,9 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String url = exchange.getRequest().getURI().getPath();
         //跳过不需要验证的路径
+        if (checkSsoUrl(url)) {
+            return chain.filter(exchange);
+        }
         if (null != skipAuthUrls && Arrays.asList(skipAuthUrls).contains(url)) {
             return chain.filter(exchange);
         }
@@ -84,17 +84,22 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private boolean checkPermissions(Collection<PermissionDto> permissions, String path, HttpMethod method) {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
         Map<String, List<PermissionDto>> permissionMap = permissions.stream().collect(Collectors.groupingBy(PermissionDto::getUrl));
-
-        if (permissionMap.containsKey(path)) {
-            for (PermissionDto dto : permissionMap.get(path)) {
-                boolean ok = pathMatcher.match(dto.getUrl(), path);
+        for (Map.Entry<String, List<PermissionDto>> entry : permissionMap.entrySet()) {
+            String url = entry.getKey();
+            boolean ok = pathMatcher.match(url, path);
+            for (PermissionDto dto : permissionMap.get(url)) {
                 if (ok && (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod()))) {
                     return true;
                 }
             }
         }
-
         return false;
+    }
+
+    private boolean checkSsoUrl(String url) {
+        AntPathMatcher pathMatcher = new AntPathMatcher("/");
+        String authUrl = "/auth/**";
+        return pathMatcher.match(authUrl, url);
     }
 
     private Mono<Void> out1(ServerWebExchange exchange) {
