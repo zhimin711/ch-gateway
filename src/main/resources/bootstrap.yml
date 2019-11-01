@@ -2,13 +2,13 @@ spring:
   application:
     name: ch-gateway
   profiles:
-    active: dev
+    active: local
   cloud:
     nacos:
       discovery:
-        server-addr: 192.168.1.2:8848
+        server-addr: 10.202.10.66:8848
         namespace: ${nacos.namespace:}
       config:
-        server-addr: 192.168.1.2:8848
-        shared-dataids: ch-gateway.yml
+        server-addr: 10.202.10.66:8848
+        shared-dataids: ch-gateway1.yml
         namespace: ${nacos.namespace:}

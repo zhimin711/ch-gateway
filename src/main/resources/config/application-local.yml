@@ -49,6 +49,18 @@ spring:
             - Path=/upms/**
           filters:
             - StripPrefix=1
+        - id: kafka
+          uri:  lb://ch-kafka
+          predicates:
+            - Path=/kafka/**
+          filters:
+            - StripPrefix=1
+        - id: sys
+          uri:  lb://ch-sys
+          predicates:
+            - Path=/sys/**
+          filters:
+            - StripPrefix=1
   main:
     allow-bean-definition-overriding: true
 #      loadBalanced: true
