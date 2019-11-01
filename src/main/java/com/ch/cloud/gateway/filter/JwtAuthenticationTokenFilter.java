@@ -1,6 +1,7 @@
 package com.ch.cloud.gateway.filter;
 
 import com.ch.Constants;
+import com.ch.StatusS;
 import com.ch.cloud.client.dto.PermissionDto;
 import com.ch.cloud.gateway.cli.SsoClientService;
 import com.ch.cloud.gateway.cli.UpmsClientService;
@@ -54,13 +55,16 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         ServerHttpResponse resp = exchange.getResponse();
         if (CommonUtils.isEmpty(token)) {
             //没有token
-            return authError(resp, Result.error(PubError.NOT_LOGIN, "请登陆"));
+            return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
         } else {
             //有token
-
             Result<UserInfo> res = ssoClientService.tokenInfo(token);
             if (res.isEmpty()) {
-                return authError(resp, Result.error(PubError.INVALID, "TOKEN 失效"));
+                PubError err = PubError.fromCode(res.getCode());
+                if (err == PubError.EXPIRED) {
+                    refreshToken(resp, StatusS.ENABLED);
+                }
+                return authError(resp, Result.error(err, res.getMessage()));
             }
             if (skipPermissions == null) {
                 Result<PermissionDto> res3 = upmsClientService.findHiddenPermissions();
@@ -112,14 +116,11 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         return pathMatcher.match(authUrl, url);
     }
 
-    private Mono<Void> out1(ServerWebExchange exchange) {
-        //未携带token或token在黑名单内
-        ServerHttpResponse originalResponse = exchange.getResponse();
-        originalResponse.setStatusCode(HttpStatus.OK);
-        originalResponse.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
-        byte[] response = "{\"code\": \"401\",\"msg\": \"401 Unauthorized.\"}".getBytes(StandardCharsets.UTF_8);
-        DataBuffer buffer = originalResponse.bufferFactory().wrap(response);
-        return originalResponse.writeWith(Flux.just(buffer));
+
+    private void refreshToken(ServerHttpResponse originalResponse, String refreshToken) {
+//        originalResponse.setStatusCode(HttpStatus.OK);
+        //token过期设置刷新标识
+        originalResponse.getHeaders().add("X-TOKEN-REFRESH", refreshToken);
     }
 
     /**

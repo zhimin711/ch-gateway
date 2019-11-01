@@ -30,7 +30,7 @@ public class GatewayApplication {
      *
      * @return
      */
-    /*@Bean
+    @Bean
     public CorsFilter corsFilter() {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         final CorsConfiguration config = new CorsConfiguration();
@@ -41,7 +41,6 @@ public class GatewayApplication {
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
-*/
     public static void main(String[] args) {
         SpringApplication.run(GatewayApplication.class, args);
     }
