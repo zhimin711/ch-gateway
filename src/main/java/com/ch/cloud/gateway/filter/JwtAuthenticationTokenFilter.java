@@ -73,7 +73,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             if (!skipPermissions.isEmpty()) {
                 boolean ok = checkPermissions(skipPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {
-                    return chain.filter(exchange);
+                    //将现在的request，添加当前身份
+                    return toUser(exchange, chain, res.get().getUsername());
                 }
             }
 
@@ -86,11 +87,15 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 return authError(resp, Result.error(PubError.NOT_AUTH));
             }
             //将现在的request，添加当前身份
-            ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, res.get().getUsername()).build();
-            ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
-            return chain.filter(mutableExchange);
+            return toUser(exchange, chain, res.get().getUsername());
         }
 //        return null;
+    }
+
+    private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, String username) {
+        ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, username).build();
+        ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
+        return chain.filter(mutableExchange);
     }
 
     private boolean checkPermissions(Collection<PermissionDto> permissions, String path, HttpMethod method) {
