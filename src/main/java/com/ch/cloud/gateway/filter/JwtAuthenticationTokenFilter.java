@@ -18,7 +18,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.AntPathMatcher;
@@ -28,13 +27,15 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private String[] skipAuthUrls = {};
+    private String[] skipUrls = {"/auth/login/**", "/auth/logout/**"};
     private String[] authUrls = {"/auth/login/token/user"};
 
     private Collection<PermissionDto> skipPermissions;
@@ -47,7 +48,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String url = exchange.getRequest().getURI().getPath();
-        if (checkSsoUrl(url) && !checkAuthUrl(url)) {
+        if (checkSkinUrl(url) && !checkAuthUrl(url)) {
             //跳过不需要验证的路径
             return chain.filter(exchange);
         }
@@ -117,10 +118,16 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         return false;
     }
 
-    private boolean checkSsoUrl(String url) {
+    private boolean checkSkinUrl(String url) {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        String authUrl = "/auth/**";
-        return pathMatcher.match(authUrl, url);
+        boolean isSkin = false;
+        for (String authUrl : skipUrls) {
+            if (pathMatcher.match(authUrl, url)) {
+                isSkin = true;
+                break;
+            }
+        }
+        return isSkin;
     }
 
     private boolean checkAuthUrl(String url) {
