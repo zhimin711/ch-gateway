@@ -10,6 +10,6 @@ public class ErrorController {
 
     @GetMapping("/fallback")
     public Result<?> fallback() {
-        return Result.error(PubError.CONNECT, "服务暂时不可用");
+        return Result.error(PubError.CONNECT, "服务暂时不可用, 稍后重试......");
     }
 }

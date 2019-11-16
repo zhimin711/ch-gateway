@@ -1,5 +1,5 @@
 server:
-    port: 7001
+  port: 7001
 
 jasypt:
   encryptor:
@@ -60,6 +60,16 @@ spring:
           predicates:
             - Path=/sys/**
           filters:
+            - name: Retry
+              args:
+                retries: 3
+                status: 503
+#                series:
+#                  - SERVER_ERROR
+            - name: Hystrix
+              args:
+                name: fallbackcmd
+                fallbackUri: forward:/fallback
             - StripPrefix=1
   main:
     allow-bean-definition-overriding: true
@@ -90,5 +100,5 @@ logging:
   path: logs/ch-gateway
   level:
     com.ch: debug
-    org.springframework.cloud: warn
+    org.springframework.cloud: info
     com.alibaba.nacos: warn
