@@ -60,17 +60,17 @@ spring:
           predicates:
             - Path=/sys/**
           filters:
-            - name: Retry
-              args:
-                retries: 3
-                status: 503
-#                series:
-#                  - SERVER_ERROR
-            - name: Hystrix
-              args:
-                name: fallbackcmd
-                fallbackUri: forward:/fallback
             - StripPrefix=1
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY
+            series: SERVER_ERROR
+        - name: Hystrix
+          args:
+            name: fallbackcmd
+            fallbackUri: forward:/fallback
   main:
     allow-bean-definition-overriding: true
 #      loadBalanced: true
