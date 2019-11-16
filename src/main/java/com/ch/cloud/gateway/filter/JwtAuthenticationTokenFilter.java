@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private String[] skipAuthUrls = {};
+    private String[] authUrls = {"/auth/login/token/user"};
 
     private Collection<PermissionDto> skipPermissions;
 
@@ -46,8 +47,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String url = exchange.getRequest().getURI().getPath();
-        //跳过不需要验证的路径
-        if (checkSsoUrl(url)) {
+        if (checkSsoUrl(url) && !checkAuthUrl(url)) {
+            //跳过不需要验证的路径
             return chain.filter(exchange);
         }
         //获取token
@@ -64,6 +65,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 if (err == PubError.EXPIRED) {
                     refreshToken(resp, StatusS.ENABLED);
                 }
+
                 return authError(resp, Result.error(err, res.getMessage()));
             }
             if (skipPermissions == null) {
@@ -119,6 +121,18 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
         String authUrl = "/auth/**";
         return pathMatcher.match(authUrl, url);
+    }
+
+    private boolean checkAuthUrl(String url) {
+        AntPathMatcher pathMatcher = new AntPathMatcher("/");
+        boolean isNeed = false;
+        for (String authUrl : authUrls) {
+            if (pathMatcher.match(authUrl, url)) {
+//                isNeed = true;
+                break;
+            }
+        }
+        return isNeed;
     }
 
 
