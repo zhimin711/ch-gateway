@@ -22,6 +22,7 @@ import java.util.List;
 //@Repository
 public class RedisRouteDefinitionRepository implements RouteDefinitionRepository {
 
+    public static final String GATEWAY_ROUTES = "gateway:routes";
     public static final String GATEWAY_ROUTES_DATA = "gateway:routes:data:";
     public static final String GATEWAY_ROUTES_KEYS = "gateway:routes:keys";
 
@@ -32,39 +33,29 @@ public class RedisRouteDefinitionRepository implements RouteDefinitionRepository
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {
         List<RouteDefinition> routeDefinitions = new ArrayList<>();
-//        redisTemplate.opsForHash().values(GATEWAY_ROUTES)
-//                .forEach(routeDefinition -> routeDefinitions.add(JSON.parseObject(routeDefinition.toString(), RouteDefinition.class)));
-        List<String> keys = redisTemplate.opsForList().range(GATEWAY_ROUTES_KEYS, 0, -1);
-        if (keys == null || keys.isEmpty()) return Flux.fromIterable(routeDefinitions);
-        keys.forEach(r -> {
-            String json = redisTemplate.opsForValue().get(GATEWAY_ROUTES_DATA + r);
-            routeDefinitions.add(JSON.parseObject(json, RouteDefinition.class));
-        });
+        redisTemplate.opsForHash().values(GATEWAY_ROUTES)
+                .forEach(routeDefinition -> routeDefinitions.add(JSON.parseObject(routeDefinition.toString(), RouteDefinition.class)));
         return Flux.fromIterable(routeDefinitions);
 
     }
 
     @Override
     public Mono<Void> save(Mono<RouteDefinition> route) {
-        return route.flatMap((r) -> {
-            redisTemplate.opsForList().leftPush(GATEWAY_ROUTES_KEYS, r.getId());
-            redisTemplate.opsForValue().set(GATEWAY_ROUTES_DATA + r.getId(), JSON.toJSONString(r));
+        return route.flatMap(routeDefinition -> {
+            redisTemplate.opsForHash().put(GATEWAY_ROUTES, routeDefinition.getId(),
+                    JSON.toJSONString(routeDefinition));
             return Mono.empty();
         });
     }
 
     @Override
     public Mono<Void> delete(Mono<String> routeIds) {
-        return routeIds.flatMap((id) -> {
-            List<String> keys = redisTemplate.opsForList().range(GATEWAY_ROUTES_KEYS, 0, -1);
-            if (keys == null || keys.isEmpty()) return Mono.empty();
-            if (keys.contains(id)) {
-                redisTemplate.opsForList().remove(GATEWAY_ROUTES_KEYS, 1, id);
-                redisTemplate.delete(GATEWAY_ROUTES_DATA + id);
+        return routeIds.flatMap(id -> {
+            if (redisTemplate.opsForHash().hasKey(GATEWAY_ROUTES, id)) {
+                redisTemplate.opsForHash().delete(GATEWAY_ROUTES, id);
                 return Mono.empty();
-            } else {
-                return Mono.error(new NotFoundException("RouteDefinition not found: " + id));
             }
+            return Mono.defer(() -> Mono.error(new NotFoundException("路由文件没有找到: " + routeIds)));
         });
     }
 }
