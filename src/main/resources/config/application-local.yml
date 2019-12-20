@@ -61,6 +61,12 @@ spring:
             - Path=/sys/**
           filters:
             - StripPrefix=1
+        - id: wiki
+          uri:  lb://ch-wiki
+          predicates:
+            - Path=/wiki/**
+          filters:
+            - StripPrefix=1
       default-filters:
         - name: Retry
           args:

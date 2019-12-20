@@ -43,6 +43,7 @@ public class GatewayApplication {
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
+
     public static void main(String[] args) {
         SpringApplication.run(GatewayApplication.class, args);
     }
