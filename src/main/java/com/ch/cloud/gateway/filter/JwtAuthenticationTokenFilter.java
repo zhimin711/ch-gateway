@@ -11,6 +11,8 @@ import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.JSONUtils;
 import com.google.common.collect.Lists;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +46,9 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private SsoClientService ssoClientService;
     @Resource
     private UpmsClientService upmsClientService;
+
+    @Autowired
+    RedissonClient redissonClient;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {

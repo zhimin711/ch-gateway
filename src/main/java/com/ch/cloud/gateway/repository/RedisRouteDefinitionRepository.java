@@ -19,7 +19,7 @@ import java.util.List;
  * @author 01370603
  * @date 2019/12/20
  */
-//@Repository
+@Repository
 public class RedisRouteDefinitionRepository implements RouteDefinitionRepository {
 
     public static final String GATEWAY_ROUTES = "gateway:routes";
@@ -27,13 +27,12 @@ public class RedisRouteDefinitionRepository implements RouteDefinitionRepository
     public static final String GATEWAY_ROUTES_KEYS = "gateway:routes:keys";
 
     @Resource
-    private StringRedisTemplate redisTemplate;
-
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {
         List<RouteDefinition> routeDefinitions = new ArrayList<>();
-        redisTemplate.opsForHash().values(GATEWAY_ROUTES)
+        stringRedisTemplate.opsForHash().values(GATEWAY_ROUTES)
                 .forEach(routeDefinition -> routeDefinitions.add(JSON.parseObject(routeDefinition.toString(), RouteDefinition.class)));
         return Flux.fromIterable(routeDefinitions);
 
@@ -42,7 +41,7 @@ public class RedisRouteDefinitionRepository implements RouteDefinitionRepository
     @Override
     public Mono<Void> save(Mono<RouteDefinition> route) {
         return route.flatMap(routeDefinition -> {
-            redisTemplate.opsForHash().put(GATEWAY_ROUTES, routeDefinition.getId(),
+            stringRedisTemplate.opsForHash().put(GATEWAY_ROUTES, routeDefinition.getId(),
                     JSON.toJSONString(routeDefinition));
             return Mono.empty();
         });
@@ -51,8 +50,8 @@ public class RedisRouteDefinitionRepository implements RouteDefinitionRepository
     @Override
     public Mono<Void> delete(Mono<String> routeIds) {
         return routeIds.flatMap(id -> {
-            if (redisTemplate.opsForHash().hasKey(GATEWAY_ROUTES, id)) {
-                redisTemplate.opsForHash().delete(GATEWAY_ROUTES, id);
+            if (stringRedisTemplate.opsForHash().hasKey(GATEWAY_ROUTES, id)) {
+                stringRedisTemplate.opsForHash().delete(GATEWAY_ROUTES, id);
                 return Mono.empty();
             }
             return Mono.defer(() -> Mono.error(new NotFoundException("路由文件没有找到: " + routeIds)));
