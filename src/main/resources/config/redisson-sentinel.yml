@@ -7,7 +7,6 @@ sentinelServersConfig:
   retryInterval: 1500
   reconnectionTimeout: 3000
   failedAttempts: 3
-  password: "zc8dn4ksoqgc*iwe"
   subscriptionsPerConnection: 5
   clientName: null
   loadBalancer: !<org.redisson.connection.balancer.RoundRobinLoadBalancer> {}
@@ -21,8 +20,9 @@ sentinelServersConfig:
   sentinelAddresses:
     - "redis://trtms-ground-session1.cachesit.sfdc.com.cn:8001"
     - "redis://trtms-ground-session2.cachesit.sfdc.com.cn:8001"
-    - "redis://trtms-ground-session3.cachesit.sfdc.com.cn:80011"
+    - "redis://trtms-ground-session3.cachesit.sfdc.com.cn:8001"
   masterName: "SHIVA_TRTMS_GROUND_REDIS_SESSION_C01"
+  password: "zc8dn4ksoqgc*iwe"
   database: 0
 threads: 0
 nettyThreads: 0
