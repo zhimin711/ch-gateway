@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.TransactionManagementConfigurer;
 import tk.mybatis.spring.annotation.MapperScan;
 
+import javax.annotation.Resource;
 import javax.sql.DataSource;
 import java.util.Properties;
 
@@ -27,12 +28,12 @@ import java.util.Properties;
  * @version 1.0
  * @since 1.8
  */
-@Configuration
+//@Configuration
 @MapperScan("com.ch.cloud.gateway.mapper")
 @EnableTransactionManagement
 public class MybatisConfig implements TransactionManagementConfigurer {
 
-    @Autowired
+    @Resource
     private DataSource dataSource;
 
     @Bean(name = "sqlSessionFactory")
@@ -51,7 +52,7 @@ public class MybatisConfig implements TransactionManagementConfigurer {
         pageHelper.setProperties(properties);
 
         //添加插件
-        bean.setPlugins(new Interceptor[]{pageHelper});
+        bean.setPlugins(pageHelper);
 
         //添加XML目录
         ResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();

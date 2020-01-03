@@ -48,7 +48,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private UpmsClientService upmsClientService;
 
     @Autowired
-    RedissonClient redissonClient;
+    private RedissonClient redissonClient;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -74,10 +74,10 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
                 return authError(resp, Result.error(err, res.getMessage()));
             }
-            if (skipPermissions == null) {
+//            if (skipPermissions == null) {
                 Result<PermissionDto> res3 = upmsClientService.findHiddenPermissions();
                 skipPermissions = res3.isEmpty() ? Lists.newArrayList() : res3.getRows();
-            }
+//            }
             if (!skipPermissions.isEmpty()) {
                 boolean ok = checkPermissions(skipPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {

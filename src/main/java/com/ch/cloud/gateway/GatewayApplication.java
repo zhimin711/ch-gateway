@@ -19,7 +19,7 @@ import org.springframework.web.reactive.config.EnableWebFlux;
  * @author zhimin
  * @date 2019/4/14 3:22 PM
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
 @EnableDiscoveryClient
 @EnableFeignClients
 @EnableWebFlux
