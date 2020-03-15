@@ -19,6 +19,12 @@ sudo docker run --name ch-gateway \
 -m 512M --memory-swap -1 \
 -d ch-gateway:v1 ;
 ```
+```
+docker run --name ch-gateway \
+-p 7001:7001 \
+-v /home/zhimin/share/logs:/mnt/share/logs  \
+-d ch-gateway:v1 ;
+```
 ### 重启 停止 删除
 ```
 sudo docker restart ch-gateway;

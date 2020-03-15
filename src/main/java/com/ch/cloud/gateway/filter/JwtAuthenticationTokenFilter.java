@@ -10,7 +10,8 @@ import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.JSONUtils;
-import com.google.common.collect.Lists;
+import org.redisson.api.RBucket;
+import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Configuration
@@ -40,7 +42,10 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private String[] skipUrls = {"/auth/login/**", "/auth/logout/**"};
     private String[] authUrls = {"/auth/login/token/user"};
 
-    private Collection<PermissionDto> skipPermissions;
+    public static final String CACHE_TOKEN_USER = "gateway:token:user";
+
+    public static final String CACHE_PERMISSIONS_HIDDEN = "gateway:permission:hidden";
+    public static final String CACHE_PERMISSIONS_AUTH = "gateway:permission:auth";
 
     @Resource
     private SsoClientService ssoClientService;
@@ -65,37 +70,56 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
         } else {
             //有token
-            Result<UserInfo> res = ssoClientService.tokenInfo(token);
-            if (res.isEmpty()) {
-                PubError err = PubError.fromCode(res.getCode());
-                if (err == PubError.EXPIRED) {
-                    refreshToken(resp, StatusS.ENABLED);
+            //todo redis cache replace sso client
+            RBucket<UserInfo> userBucket = redissonClient.getBucket(CACHE_TOKEN_USER + ":" + token);
+            if(!userBucket.isExists()){
+                Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
+                if (res1.isEmpty()) {
+                    PubError err = PubError.fromCode(res1.getCode());
+                    if (err == PubError.EXPIRED) {
+                        refreshToken(resp, StatusS.ENABLED);
+                    }
+                    return authError(resp, Result.error(err, res1.getMessage()));
                 }
-
-                return authError(resp, Result.error(err, res.getMessage()));
+                userBucket.set(res1.get());
+                userBucket.expireAt(res1.get().getExpireAt());
             }
-//            if (skipPermissions == null) {
+            //redis cache replace sso client findHiddenPermissions
+            RList<PermissionDto> hiddenPermissions = redissonClient.getList(CACHE_PERMISSIONS_HIDDEN);
+
+            if (hiddenPermissions.isEmpty()) {
                 Result<PermissionDto> res3 = upmsClientService.findHiddenPermissions();
-                skipPermissions = res3.isEmpty() ? Lists.newArrayList() : res3.getRows();
-//            }
-            if (!skipPermissions.isEmpty()) {
-                boolean ok = checkPermissions(skipPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+                if (!res3.isEmpty()) {
+                    hiddenPermissions.addAll(res3.getRows());
+                    hiddenPermissions.expire(30, TimeUnit.MINUTES);
+                }
+            }
+            if (!hiddenPermissions.isEmpty()) {
+                boolean ok = checkPermissions(hiddenPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {
                     //将现在的request，添加当前身份
-                    return toUser(exchange, chain, res.get().getUsername());
+                    return toUser(exchange, chain, userBucket.get().getUsername());
                 }
             }
 
-            Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(res.get().getRoleId());
-            if (res2.isEmpty()) {
-                return authError(resp, Result.error(PubError.NOT_AUTH));
+            //redis cache replace sso client findPermissionsByRoleId
+            RList<PermissionDto> authPermissions = redissonClient.getList(CACHE_PERMISSIONS_AUTH);
+
+            if (authPermissions.isEmpty()) {
+                Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(userBucket.get().getRoleId());
+                if (res2.isEmpty()) {
+                    return authError(resp, Result.error(PubError.NOT_AUTH));
+                }
+                authPermissions.addAll(res2.getRows());
+                authPermissions.expire(30, TimeUnit.MINUTES);
+
             }
-            boolean ok = checkPermissions(res2.getRows(), exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+            boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (!ok) {
                 return authError(resp, Result.error(PubError.NOT_AUTH));
             }
             //将现在的request，添加当前身份
-            return toUser(exchange, chain, res.get().getUsername());
+            return toUser(exchange, chain, userBucket.get().getUsername());
         }
 //        return null;
     }

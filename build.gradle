@@ -10,7 +10,6 @@ group = 'com.ch.cloud'
 version = '1.0.0-SNAPSHOT'
 sourceCompatibility = 1.8
 
-//mainClassName = 'com.ch.cloud.eureka.EurekaServerApplication'
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -27,7 +26,6 @@ ext {
     chUpmsApiVersion = '1.0.0-SNAPSHOT'
 
 
-//	springCloudVersion = 'Edgware.RELEASE'
 //    springCloudVersion = 'Greenwich.RELEASE'
     set('springCloudVersion', "Hoxton.SR1")
     springOauth2 = '2.3.4.RELEASE'
