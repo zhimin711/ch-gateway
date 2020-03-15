@@ -70,7 +70,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
         } else {
             //有token
-            //todo redis cache replace sso client
+            //redis cache replace sso client
             RBucket<UserInfo> userBucket = redissonClient.getBucket(CACHE_TOKEN_USER + ":" + token);
             if(!userBucket.isExists()){
                 Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
