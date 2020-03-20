@@ -4,7 +4,7 @@ server:
 jasypt:
   encryptor:
     password: abc123
-    algorithm: PBEWithMD5AndDES
+#    algorithm: PBEWithMD5AndDES
 spring:
   redis:
     ##
@@ -21,23 +21,23 @@ spring:
     ### 连接超时时间（毫秒）
     timeout: 60000
     ### Redis数据库索引(默认为0)
+    host: 192.168.1.104
+    port: 6379
+#    password: zc8dn4ksoqgc*iwe
     database: 0
-    password: zc8dn4ksoqgc*iwe
-    sentinel:
-      master: SHIVA_TRTMS_GROUND_REDIS_SESSION_C01
-      nodes:
-        - trtms-ground-session1.cachesit.sfdc.com.cn:8001
-        - trtms-ground-session2.cachesit.sfdc.com.cn:8001
-        - trtms-ground-session3.cachesit.sfdc.com.cn:8001
-  application:
-    name: ch-gateway
+#    sentinel:
+#      master: SHIVA_TRTMS_GROUND_REDIS_SESSION_C01
+#      nodes:
+#        - trtms-ground-session1.cachesit.sfdc.com.cn:8001
+#        - trtms-ground-session2.cachesit.sfdc.com.cn:8001
+#        - trtms-ground-session3.cachesit.sfdc.com.cn:8001
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
   #API网关配置
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://www.zhaohuajike.cn:3306/dev_ch_gateway
     username: admin
     password: ENC(hfO3JFDCY2HB6x+j1obZOg==)
@@ -72,18 +72,18 @@ spring:
             - Path=/upms/**
           filters:
             - StripPrefix=1
-        - id: kafka
-          uri:  lb://ch-kafka
-          predicates:
-            - Path=/kafka/**
-          filters:
-            - StripPrefix=1
-        - id: sys
-          uri:  lb://ch-sys
-          predicates:
-            - Path=/sys/**
-          filters:
-            - StripPrefix=1
+#        - id: kafka
+#          uri:  lb://ch-kafka
+#          predicates:
+#            - Path=/kafka/**
+#          filters:
+#            - StripPrefix=1
+#        - id: sys
+#          uri:  lb://ch-sys
+#          predicates:
+#            - Path=/sys/**
+#          filters:
+#            - StripPrefix=1
         - id: wiki
           uri:  lb://ch-wiki
           predicates:
@@ -100,8 +100,6 @@ spring:
           args:
             name: fallbackcmd
             fallbackUri: forward:/fallback
-  main:
-    allow-bean-definition-overriding: true
 #      loadBalanced: true
 ##############end#####################
 ####超时配置####
@@ -131,3 +129,8 @@ logging:
     com.ch: debug
     org.springframework.cloud: info
     com.alibaba.nacos: warn
+rocketmq:
+  name-server: 192.168.1.104:9876 # 自己的RocketMQ服务地址
+  producer:
+    send-message-timeout: 300000
+    group: ch-gateway

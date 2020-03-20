@@ -1,0 +1,86 @@
+package com.ch.cloud.gateway.filter;
+
+
+import com.ch.cloud.gateway.utils.GatewayLogUtil;
+import lombok.extern.log4j.Log4j2;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+import javax.annotation.Resource;
+import java.net.URI;
+
+@Component
+@Log4j2
+public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
+    @Resource
+    private RocketMQTemplate rocketMQTemplate;
+
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest originalRequest = exchange.getRequest();
+        URI originalRequestUrl = originalRequest.getURI();
+
+        //只记录http的请求
+        String scheme = originalRequestUrl.getScheme();
+        if ((!"http".equals(scheme) && !"https".equals(scheme))) {
+            return chain.filter(exchange);
+        }
+
+        String upgrade = originalRequest.getHeaders().getUpgrade();
+        if ("websocket".equalsIgnoreCase(upgrade)) {
+            return chain.filter(exchange);
+        }
+
+        // 在 GatewayFilter 之前执行， 此时的request时最初的request
+        RecorderServerHttpRequestDecorator request = new RecorderServerHttpRequestDecorator(exchange.getRequest());
+
+        // 此时的response时 发送回客户端的 response
+        RecorderServerHttpResponseDecorator response = new RecorderServerHttpResponseDecorator(exchange.getResponse());
+
+        ServerWebExchange ex = exchange.mutate()
+                .request(request)
+                .response(response)
+                .build();
+
+        return GatewayLogUtil.recorderOriginalRequest(ex)
+                .then(Mono.defer(() -> chain.filter(ex)))
+                .then(Mono.defer(() -> finishLog(ex)));
+    }
+
+    private Mono<Void> finishLog(ServerWebExchange ex) {
+        return GatewayLogUtil.recorderResponse(ex)
+                .doOnSuccess(x -> {
+                    String logStr = GatewayLogUtil.getLogData(ex);
+                    log.info(logStr);
+
+//                    rocketMQTemplate.convertAndSend("request-logs", logStr);
+
+                    rocketMQTemplate.asyncSend("request-logs", logStr, new SendCallback() {
+                        @Override
+                        public void onSuccess(SendResult sendResult) {
+                            log.info("{} => {}", ex.getRequest().getURI(), sendResult.getMsgId());
+                        }
+
+                        @Override
+                        public void onException(Throwable e) {
+                            log.error("send error: " + ex.getRequest().getURI(), e);
+                        }
+                    });
+                });
+    }
+
+    @Override
+    public int getOrder() {
+        //在GatewayFilter之前执行
+        return -1;
+    }
+}
