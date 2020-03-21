@@ -72,7 +72,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             //有token
             //redis cache replace sso client
             RBucket<UserInfo> userBucket = redissonClient.getBucket(CACHE_TOKEN_USER + ":" + token);
-            if(!userBucket.isExists()){
+            if (!userBucket.isExists()) {
                 Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
                 if (res1.isEmpty()) {
                     PubError err = PubError.fromCode(res1.getCode());
@@ -103,7 +103,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             }
 
             //redis cache replace sso client findPermissionsByRoleId
-            RList<PermissionDto> authPermissions = redissonClient.getList(CACHE_PERMISSIONS_AUTH);
+            RList<PermissionDto> authPermissions = redissonClient.getList(CACHE_PERMISSIONS_AUTH + ":" + userBucket.get().getRoleId());
 
             if (authPermissions.isEmpty()) {
                 Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(userBucket.get().getRoleId());

@@ -159,7 +159,7 @@ public class GatewayLogUtil {
             return Mono.empty();
         }
         logBuffer.append("{");
-        appendKeyValue(logBuffer, "status", code.getReasonPhrase());
+        appendKeyValue(logBuffer, "status", code.value() + "");
 
         HttpHeaders headers = response.getHeaders();
         recorderHeader(logBuffer, headers);
@@ -186,7 +186,7 @@ public class GatewayLogUtil {
         StringBuffer logBuffer = exchange.getAttribute(REQUEST_RECORDER_LOG_BUFFER);
         if (logBuffer == null) return null;
         logBuffer.append(REQUEST_PROCESS_SEPARATOR);
-        logBuffer.append("{\"").append("record").append("\":");
+        logBuffer.append("{\"").append("record").append("\":{");
         ServerHttpRequest request = exchange.getRequest();
         appendKeyValue(logBuffer, "url", request.getPath().value());
         appendKeyValue(logBuffer, "method", request.getMethodValue());
@@ -196,7 +196,7 @@ public class GatewayLogUtil {
         }
         appendKeyValue(logBuffer, "startTimestamp", startTimeMillis + "");
         appendKeyValueEnd(logBuffer, "endTimestamp", endTimeMillis + "");
-        logBuffer.append("}");
+        logBuffer.append("}}");
         return logBuffer.toString();
     }
 }
