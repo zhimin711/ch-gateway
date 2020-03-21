@@ -50,17 +50,18 @@ public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
                 .request(request)
                 .response(response)
                 .build();
-
+        long startTimeMillis = System.currentTimeMillis();
         return GatewayLogUtil.recorderOriginalRequest(ex)
                 .then(Mono.defer(() -> chain.filter(ex)))
-                .then(Mono.defer(() -> finishLog(ex)));
+                .then(Mono.defer(() -> finishLog(ex, startTimeMillis)));
     }
 
-    private Mono<Void> finishLog(ServerWebExchange ex) {
+    private Mono<Void> finishLog(ServerWebExchange ex, long startTimeMillis) {
         return GatewayLogUtil.recorderResponse(ex)
                 .doOnSuccess(x -> {
-                    String logStr = GatewayLogUtil.getLogData(ex);
-                    log.info(logStr);
+                    long endTimeMillis = System.currentTimeMillis();
+                    String logStr = GatewayLogUtil.getLogData(ex, startTimeMillis, endTimeMillis);
+                    log.info("request cost time: {}\n{}", endTimeMillis - startTimeMillis, logStr);
 
 //                    rocketMQTemplate.convertAndSend("request-logs", logStr);
 
