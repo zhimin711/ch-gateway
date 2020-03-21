@@ -1,4 +1,4 @@
-package com.ch.cloud.gateway.filter;
+package com.ch.cloud.gateway.decorator;
 
 import com.ch.cloud.gateway.utils.DataBufferFixUtil;
 import com.ch.cloud.gateway.utils.DataBufferWrapper;

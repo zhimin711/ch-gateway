@@ -2,7 +2,7 @@ package com.ch.cloud.gateway.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.ch.Constants;
-import com.ch.cloud.gateway.filter.RecorderServerHttpResponseDecorator;
+import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
 import com.ch.utils.CommonUtils;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.core.io.buffer.DataBuffer;
