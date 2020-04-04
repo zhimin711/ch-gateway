@@ -25,7 +25,6 @@ ext {
     chVersion = '1.0.3-SNAPSHOT'
     chUpmsApiVersion = '1.0.0-SNAPSHOT'
 
-
 //    springCloudVersion = 'Greenwich.RELEASE'
     set('springCloudVersion', "Hoxton.SR1")
     springOauth2 = '2.3.4.RELEASE'

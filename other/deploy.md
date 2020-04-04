@@ -2,8 +2,8 @@
 # 上传配置  
 
 ```
-scp -r ch-gateway/src/main/docker/Dockerfile zhimin@192.168.1.100:/home/zhimin/docker/ch-gateway
-scp -r ch-gateway/build/libs/ch-gateway-1.0.1-SNAPSHOT.jar zhimin@192.168.1.100:/home/zhimin/docker/ch-gateway
+scp -r src/main/docker/Dockerfile zhimin@192.168.1.100:/home/zhimin/docker/ch-gateway
+scp -r build/libs/ch-gateway-1.0.0-SNAPSHOT.jar zhimin@192.168.199.194:/home/zhimin/docker/ch-gateway
 ```
 
 ### 打包镜像  

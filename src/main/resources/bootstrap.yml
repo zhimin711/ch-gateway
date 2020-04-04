@@ -1,12 +1,17 @@
+
+nacos:
+  config:
+    namespace:
+    server-addr: 192.168.199.194:8848
 spring:
   application:
     name: ch-gateway
   cloud:
     nacos:
       discovery:
-        server-addr: 10.202.10.66:8848
-        namespace: ${nacos.namespace:}
+        server-addr: ${nacos.config.server-addr:localhost:8848}
+        namespace: ${nacos.config.namespace:}
       config:
-        server-addr: 10.202.10.66:8848
-        shared-dataids: ch-gateway1.yml
-        namespace: ${nacos.namespace:}
+        server-addr: ${nacos.config.server-addr:localhost:8848}
+        namespace: ${nacos.config.namespace:}
+        shared-dataids: ch-gateway.yml
