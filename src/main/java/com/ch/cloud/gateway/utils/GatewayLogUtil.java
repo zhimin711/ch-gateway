@@ -11,6 +11,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.lang.Nullable;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
@@ -35,7 +36,8 @@ public class GatewayLogUtil {
         return method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH;
     }
 
-    private static boolean shouldRecordBody(MediaType contentType) {
+    public static boolean shouldRecordBody(MediaType contentType) {
+        if (contentType == null) return false;
         String type = contentType.getType();
         String subType = contentType.getSubtype();
 
@@ -114,7 +116,7 @@ public class GatewayLogUtil {
                 MediaType contentType = headers.getContentType();
                 logBuffer.append(",");
                 appendKeyValue(logBuffer, "contentType", contentType != null ? contentType.toString() : "");
-                if (contentType != null && shouldRecordBody(contentType))
+                if (shouldRecordBody(contentType))
                     bodyCharset = getMediaTypeCharset(contentType);
             }
         }
@@ -146,7 +148,7 @@ public class GatewayLogUtil {
     }
 
     public static Mono<Void> recorderResponse(ServerWebExchange exchange) {
-        RecorderServerHttpResponseDecorator response = (RecorderServerHttpResponseDecorator) exchange.getResponse();
+        ServerHttpResponse response = exchange.getResponse();
         StringBuffer logBuffer = exchange.getAttribute(REQUEST_RECORDER_LOG_BUFFER);
         Objects.requireNonNull(logBuffer);
         logBuffer.append(REQUEST_PROCESS_SEPARATOR);
@@ -165,15 +167,15 @@ public class GatewayLogUtil {
         recorderHeader(logBuffer, headers);
 
         Charset bodyCharset = null;
-        MediaType contentType = headers.getContentType();
-        logBuffer.append(",");
-        appendKeyValue(logBuffer, "contentType", contentType != null ? contentType.toString() : "");
-        if (contentType != null && shouldRecordBody(contentType))
-            bodyCharset = getMediaTypeCharset(contentType);
+        if (shouldRecordBody(headers.getContentType())) {
+            bodyCharset = getMediaTypeCharset(headers.getContentType());
+        }
+//        boolean isDecorator = exchange.getResponse() instanceof RecorderServerHttpResponseDecorator;
         if (bodyCharset != null) {
-            return doRecordBody(logBuffer, response.copy(), bodyCharset);
+            logBuffer.append(",");
+            return doRecordBody(logBuffer, ((RecorderServerHttpResponseDecorator) response).copy(), bodyCharset);
         } else {
-            logBuffer.append("}");
+            logBuffer.append("}}");
             return Mono.empty();
         }
     }

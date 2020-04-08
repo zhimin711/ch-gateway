@@ -2,6 +2,7 @@ package com.ch.cloud.gateway.decorator;
 
 import com.ch.cloud.gateway.utils.DataBufferFixUtil;
 import com.ch.cloud.gateway.utils.DataBufferWrapper;
+import com.ch.cloud.gateway.utils.GatewayLogUtil;
 import org.reactivestreams.Publisher;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -19,6 +20,9 @@ public class RecorderServerHttpResponseDecorator extends ServerHttpResponseDecor
 
     @Override
     public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+        if (!GatewayLogUtil.shouldRecordBody(super.getHeaders().getContentType())) {
+            return super.writeWith(body);
+        }
         return DataBufferFixUtil.join(Flux.from(body))
                 .doOnNext(d -> this.data = d)
                 .flatMap(d -> super.writeWith(copy()));
@@ -26,6 +30,9 @@ public class RecorderServerHttpResponseDecorator extends ServerHttpResponseDecor
 
     @Override
     public Mono<Void> writeAndFlushWith(Publisher<? extends Publisher<? extends DataBuffer>> body) {
+        if (!GatewayLogUtil.shouldRecordBody(super.getHeaders().getContentType())) {
+            return super.writeAndFlushWith(body);
+        }
         return writeWith(Flux.from(body)
                 .flatMapSequential(p -> p));
     }

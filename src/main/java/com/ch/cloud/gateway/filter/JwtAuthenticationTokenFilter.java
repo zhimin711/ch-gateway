@@ -10,6 +10,7 @@ import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.JSONUtils;
+import com.google.common.collect.Maps;
 import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
@@ -41,6 +42,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private String[] skipUrls = {"/auth/login/**", "/auth/logout/**"};
     private String[] authUrls = {"/auth/login/token/user"};
+    private static final String DOWNLOAD_PATTERN = "/**/download/**";
 
     public static final String CACHE_TOKEN_USER = "gateway:token:user";
 
@@ -52,7 +54,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     @Resource
     private UpmsClientService upmsClientService;
 
-    @Autowired
+    @Resource
     private RedissonClient redissonClient;
 
     @Override
@@ -65,6 +67,9 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         //获取token
         String token = exchange.getRequest().getHeaders().getFirst(Constants.TOKEN_HEADER2);
         ServerHttpResponse resp = exchange.getResponse();
+        if (CommonUtils.isEmpty(token)) {
+            token = getToken2(exchange.getRequest());
+        }
         if (CommonUtils.isEmpty(token)) {
             //没有token
             return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
@@ -122,6 +127,35 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             return toUser(exchange, chain, userBucket.get().getUsername());
         }
 //        return null;
+    }
+
+    private String getToken2(ServerHttpRequest request) {
+        String query = request.getURI().getQuery();
+        if (request.getMethod() != HttpMethod.GET || CommonUtils.isEmpty(query)) {
+            return null;
+        }
+
+        String path = request.getURI().getPath();
+        AntPathMatcher pathMatcher = new AntPathMatcher("/");
+        boolean isDownload = pathMatcher.match(DOWNLOAD_PATTERN, path);
+        if (!isDownload) {
+            return null;
+        }
+        String[] paramsArr = query.split("&");
+        Map<String, String> params = Maps.newConcurrentMap();
+        for (String pStr : paramsArr) {
+            if (CommonUtils.isEmpty(pStr) || !pStr.contains("=")) {
+                continue;
+            }
+            int s = pStr.indexOf("=");
+            if (s <= 1) {
+                continue;
+            }
+            String key = pStr.substring(0, s);
+            String value = pStr.substring(s + 1);
+            params.put(key, value);
+        }
+        return params.getOrDefault(Constants.TOKEN, null);
     }
 
     private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, String username) {
