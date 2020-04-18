@@ -9,6 +9,7 @@ import com.ch.cloud.gateway.pojo.UserInfo;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
+import com.ch.utils.EncryptUtils;
 import com.ch.utils.JSONUtils;
 import com.google.common.collect.Maps;
 import org.redisson.api.RBucket;
@@ -37,6 +38,12 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * 权限过滤器
+ *
+ * @author zhimi
+ * @since 2020-1-1
+ */
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
@@ -76,7 +83,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         } else {
             //有token
             //redis cache replace sso client
-            RBucket<UserInfo> userBucket = redissonClient.getBucket(CACHE_TOKEN_USER + ":" + token);
+            RBucket<UserInfo> userBucket = redissonClient.getBucket(CACHE_TOKEN_USER + ":" + EncryptUtils.md5(token));
             if (!userBucket.isExists()) {
                 Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
                 if (res1.isEmpty()) {

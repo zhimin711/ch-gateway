@@ -21,7 +21,7 @@ spring:
     ### 连接超时时间（毫秒）
     timeout: 60000
     ### Redis数据库索引(默认为0)
-    host: 192.168.1.104
+    host: 192.168.199.194
     port: 6379
 #    password: zc8dn4ksoqgc*iwe
     database: 0
@@ -72,18 +72,18 @@ spring:
             - Path=/upms/**
           filters:
             - StripPrefix=1
-#        - id: kafka
-#          uri:  lb://ch-kafka
-#          predicates:
-#            - Path=/kafka/**
-#          filters:
-#            - StripPrefix=1
-#        - id: sys
-#          uri:  lb://ch-sys
-#          predicates:
-#            - Path=/sys/**
-#          filters:
-#            - StripPrefix=1
+        - id: kafka
+          uri:  lb://ch-kafka
+          predicates:
+            - Path=/kafka/**
+          filters:
+            - StripPrefix=1
+        - id: sys
+          uri:  lb://ch-sys
+          predicates:
+            - Path=/sys/**
+          filters:
+            - StripPrefix=1
         - id: wiki
           uri:  lb://ch-wiki
           predicates:
@@ -130,7 +130,7 @@ logging:
     org.springframework.cloud: info
     com.alibaba.nacos: warn
 rocketmq:
-  name-server: 192.168.1.104:9876 # 自己的RocketMQ服务地址
+  name-server: 192.168.199.194:9876 # 自己的RocketMQ服务地址
   producer:
     send-message-timeout: 300000
     group: ch-gateway
