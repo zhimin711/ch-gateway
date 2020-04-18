@@ -15,3 +15,16 @@ spring:
         server-addr: ${nacos.config.server-addr}
         namespace: ${nacos.config.namespace:}
         shared-dataids: ch-gateway.yml
+#    sentinel:
+#      transport:
+#        dashboard: 192.168.199.194:8800
+#        port: 8800
+#      # 服务启动直接建立心跳连接
+#      eager: true
+#      datasource:
+#        ds1:
+#          nacos:
+#            server-addr: ${nacos.config.server-addr}
+#            dataId: ${spring.application.name}-flow-rules.json
+#            data-type: json
+#            rule-type: flow

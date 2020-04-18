@@ -41,8 +41,9 @@ dependencies {
 
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
+
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel:2.1.0.RELEASE'
     implementation 'com.alibaba.cloud:spring-cloud-alibaba-sentinel-gateway:2.1.0.RELEASE'
-    implementation 'com.alibaba.csp:sentinel-transport-simple-http:1.6.3'
 
     runtimeOnly 'mysql:mysql-connector-java'
 //    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:1.1.1'
