@@ -8,7 +8,7 @@ scp -r build/libs/ch-gateway-1.0.0-SNAPSHOT.jar zhimin@192.168.199.194:/home/zhi
 
 ### 打包镜像  
 ```
-sudo docker build -t ch-gateway:v1  /home/zhimin/docker/ch-gateway
+docker build -t ch-gateway:v1  /home/zhimin/docker/ch-gateway
 ```
 
 ### 启动
@@ -22,15 +22,19 @@ sudo docker run --name ch-gateway \
 ```
 docker run --name ch-gateway \
 -p 7001:7001 \
+-p 7071:7070 \
 -v /home/zhimin/share/logs:/mnt/share/logs  \
+-v /home/zhimin/share/plugins:/mnt/share/plugins  \
+-e JAVA_OPTS='-Dspring.profiles.active=test -javaagent:/mnt/share/plugins/jmx_prometheus_javaagent-0.12.0.jar=7070:/mnt/share/plugins/simple-config.yaml' \
+-m 700M --memory-swap -1 \
 -d ch-gateway:v1 ;
 ```
 ### 重启 停止 删除
 ```
-sudo docker restart ch-gateway;
-sudo docker stop ch-gateway;
-sudo docker rm ch-gateway;
-sudo docker rmi ch-gateway:v1;
+ docker restart ch-gateway;
+ docker stop ch-gateway;
+ docker rm ch-gateway;
+ docker rmi ch-gateway:v1;
 ```
 ```
 sudo pipework br0 ch-gateway 192.168.1.10/24@192.168.1.1

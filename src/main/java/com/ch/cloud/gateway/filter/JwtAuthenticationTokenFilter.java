@@ -50,6 +50,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private String[] skipUrls = {"/auth/login/**", "/auth/logout/**"};
     private String[] authUrls = {"/auth/login/token/user"};
     private static final String DOWNLOAD_PATTERN = "/**/download/**";
+    private static final String IMAGES_PATTERN = "/**/images/**";
 
     public static final String CACHE_TOKEN_USER = "gateway:token:user";
 
@@ -145,7 +146,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         String path = request.getURI().getPath();
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
         boolean isDownload = pathMatcher.match(DOWNLOAD_PATTERN, path);
-        if (!isDownload) {
+        boolean isImages = pathMatcher.match(IMAGES_PATTERN, path);
+        if (!(isDownload || isImages)) {
             return null;
         }
         String[] paramsArr = query.split("&");
