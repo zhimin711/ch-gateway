@@ -1,6 +1,7 @@
 package com.ch.cloud.gateway.filter;
 
 
+import com.ch.Constants;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpRequestDecorator;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
 import com.ch.cloud.gateway.utils.GatewayLogUtil;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 import java.net.URI;
+import java.util.List;
 
 @Configuration
 @Log4j2
@@ -58,16 +60,23 @@ public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
                 .then(Mono.defer(() -> finishLog(ex, startTimeMillis)));
     }
 
+    public static final String MQ_TOPIC = "request-logs";
+
     private Mono<Void> finishLog(ServerWebExchange ex, long startTimeMillis) {
         return GatewayLogUtil.recorderResponse(ex)
                 .doOnSuccess(x -> {
                     long endTimeMillis = System.currentTimeMillis();
                     String logStr = GatewayLogUtil.getLogData(ex, startTimeMillis, endTimeMillis);
-                    log.info("request cost time: {}\n{}", endTimeMillis - startTimeMillis, logStr);
+//                    log.info("request cost time: {}\n{}", endTimeMillis - startTimeMillis, logStr);
 
+                    List<String> uList = ex.getRequest().getHeaders().getOrEmpty(Constants.TOKEN_USER);
+                    String topic = MQ_TOPIC;
+                    if (!uList.isEmpty()) {
+                        topic += ":" + uList.get(0);
+                    }
 //                    rocketMQTemplate.convertAndSend("request-logs", logStr);
 
-                    rocketMQTemplate.asyncSend("request-logs", logStr, new SendCallback() {
+                    rocketMQTemplate.asyncSend(topic, logStr, new SendCallback() {
                         @Override
                         public void onSuccess(SendResult sendResult) {
                             log.info("{} => {}", ex.getRequest().getURI(), sendResult.getMsgId());
