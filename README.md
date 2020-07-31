@@ -1,23 +1,196 @@
-# ch-gateway
+# ch-gateway（朝华网关微服务）
 
 #### 介绍
-服务网关
+网关是提供前端请求滤过与路由的基础服务，将请求鉴权后分发到对应的微服务。
+
+* 使用Spring Boot + Spring gateway框架
+* 采用Alibaba Nacos 为注册与配置中心
+* 使用Redis缓存用户基本信息与角色权限
+* 使用RocketMQ做消息总线存储日志
+* 使用Alibaba Sentinel 做流量哨兵,提供限流与熔断（配置默认关闭）
+* 结合Nacos配置实现动态路由前缓存Redis
 
 #### 软件架构
-软件架构说明
+请参见Wiki文档 [传送门](https://gitee.com/ch-cloud/wiki)
 
 
 #### 安装教程
 
-1. xxxx
-2. xxxx
-3. xxxx
+1. 修改配置文件（基于Wiki基础服务）  
+（1） resources/config/application-local.yml  
+>修改  
+redis.host与redis.port
+rocketmq.name-server
 
-#### 使用说明
+```yaml
+server:
+  port: 7001
 
-1. xxxx
-2. xxxx
-3. xxxx
+jasypt:
+  encryptor:
+    password: abc123
+#    algorithm: PBEWithMD5AndDES
+spring:
+  redis:
+    ##
+    jedis:
+      pool:
+        ### 连接池最大连接数（使用负值表示没有限制）
+        max-active: 9
+        ### 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: -1
+        ### 连接池中的最大空闲连接
+        max-idle: 9
+        ### 连接池中的最小空闲连接
+        min-idle: 0
+    ### 连接超时时间（毫秒）
+    timeout: 60000
+    ### Redis数据库索引(默认为0)
+    host: 192.168.199.194
+    port: 6379
+#    password: *iwe
+    database: 0
+#    sentinel:
+#      master: SHIVA_TRTMS_GROUND_REDIS_SESSION_C01
+#      nodes:
+#        - session1.ch.com:8001
+#        - session2.ch.com:8001
+#        - session3.ch.com:8001
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  #API网关配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://www.zhaohuajike.cn:3306/dev_ch_gateway
+    username: admin
+    password: ENC(hfO3JFDCY2HB6x+j1obZOg==)
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: DatebookHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true  #表明gateway开启服务注册和发现的功能，并且spring cloud gateway自动根据服务发现为每一个服务创建了一个router，这个router将以服务名开头的请求路径转发到对应的服务。
+          lowerCaseServiceId: true   #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了），比如以/service-hi/*的请求路径被路由转发到服务名为service-hi的服务上。
+          filters:
+            - StripPrefix=1
+      routes:
+        - id: sso
+          uri: lb://ch-sso
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+        - id: upms
+          uri:  lb://ch-upms
+          predicates:
+            - Path=/upms/**
+          filters:
+            - StripPrefix=1
+        - id: kafka
+          uri:  lb://ch-kafka
+          predicates:
+            - Path=/kafka/**
+          filters:
+            - StripPrefix=1
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY
+            series: SERVER_ERROR
+        - name: Hystrix
+          args:
+            name: fallbackcmd
+            fallbackUri: forward:/fallback
+#      loadBalanced: true
+##############end#####################
+####超时配置####
+ribbon:
+  ReadTimeout: 10000
+  ConnectTimeout: 10000
+  MaxAutoRetries: 1
+  MaxAutoRetriesNextServer: 2
+  http:
+    client:
+      enabled: true
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          thread:
+            timeoutInMilliseconds: 600000
+###超时配置###
+
+logging:
+  config: classpath:config/logback-test.xml
+  path: logs/ch-gateway
+  level:
+    com.ch: debug
+    org.springframework.cloud: info
+    com.alibaba.nacos: warn
+rocketmq:
+  name-server: 192.168.199.194:9876 # 自己的RocketMQ服务地址
+  producer:
+    send-message-timeout: 300000
+    group: ch-gateway
+```
+（2） resources/bootstrap.yml  
+修改namespace与server-addr
+```yaml
+nacos:
+  config:
+    namespace: local
+    server-addr: 192.168.199.194:8848
+spring:
+  application:
+    name: ch-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${nacos.config.server-addr}
+        namespace: ${nacos.config.namespace:}
+      config:
+        server-addr: ${nacos.config.server-addr}
+        namespace: ${nacos.config.namespace:}
+        shared-dataids: ch-gateway.yml
+#    sentinel:
+#      transport:
+#        dashboard: 192.168.199.194:8800
+#        port: 8800
+#      # 服务启动直接建立心跳连接
+#      eager: true
+#      datasource:
+#        ds1:
+#          nacos:
+#            server-addr: ${nacos.config.server-addr}
+#            dataId: ${spring.application.name}-flow-rules.json
+#            data-type: json
+#            rule-type: flow
+```
+2. 上传配置文件（application-local.yml,注:文件名要修改为"应用名称".yml（spring.application.name））到Nacos  
+上传动态路由文件ch-gateway-router.json到Nacos
+3. 启动服务
+~~~
+#gradle工具命令启动：
+gradle bootJar
+#docker部署参考other目录deploy.md
+~~~
+
+
 
 #### 参与贡献
 
@@ -27,149 +200,5 @@
 
 1. [springcloud gateway动态路由实现，mysql存储配置](https://blog.csdn.net/qq_42714869/article/details/92794911)
 
-
-#### Spring Cloud Gateway高级应用
-
-### 1. 限速路由器  
-限速在高并发场景中比较常用的手段之一，可以有效的保障服务的整体稳定性，Spring Cloud Gateway 提供了基于 Redis 的限流方案。所以我们首先需要添加对应的依赖包spring-boot-starter-data-redis-reactive
-```
-<dependency>
-  <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-</dependency>
-```
-配置文件中需要添加 Redis 地址和限流的相关配置
-```
-server:
-  port: 8080
-spring:
-  application:
-    name: spring-cloud-gateway
-  redis:
-    host: localhost
-    password: password
-    port: 6379
-  cloud:
-    gateway:
-      discovery:
-        locator:
-          enabled: true
-      routes:
-        - id: requestratelimiter_route
-          uri: http://example.org
-          filters:
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
-                key-resolver: "#{@userKeyResolver}"
-          predicates:
-            - Method=GET
-```
-filter 名称必须是 RequestRateLimiter  
-redis-rate-limiter.replenishRate：允许用户每秒处理多少个请求  
-redis-rate-limiter.burstCapacity：令牌桶的容量，允许在一秒钟内完成的最大请求数  
-key-resolver：使用 SpEL 按名称引用 bean  
-项目中设置限流的策略，创建 Config 类。
-```
-package com.springcloud.gateway.config;
-
-import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import reactor.core.publisher.Mono;
-
-/**
- * Created with IntelliJ IDEA.
- *
- * @Date: 2019/7/11
- * @Time: 23:45
- * @email: inwsy@hotmail.com
- * Description:
- */
-@Configuration
-public class Config {
-    @Bean
-    KeyResolver userKeyResolver() {
-        return exchange -> Mono.just(exchange.getRequest().getQueryParams().getFirst("user"));
-    }
-}
-```
-Config类需要加@Configuration注解。  
-
-根据请求参数中的 user 字段来限流，也可以设置根据请求 IP 地址来限流，设置如下:
-```
-@Bean
-public KeyResolver ipKeyResolver() {
-    return exchange -> Mono.just(exchange.getRequest().getRemoteAddress().getHostName());
-}
-```
-这样网关就可以根据不同策略来对请求进行限流了。
-
-### 2. 熔断路由器  
-在之前的 Spring Cloud 系列文章中，大家对熔断应该有了一定的了解，如过不了解可以先读这篇文章：《跟我学SpringCloud | 第四篇：熔断器Hystrix》
-
-Spring Cloud Gateway 也可以利用 Hystrix 的熔断特性，在流量过大时进行服务降级，同样我们还是首先给项目添加上依赖。
-```
-<dependency>
-  <groupId>org.springframework.cloud</groupId>
-  <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
-</dependency>
-```
-配置示例
-```
-spring:
-  cloud:
-    gateway:
-      routes:
-      - id: hystrix_route
-        uri: http://example.org
-        filters:
-        - Hystrix=myCommandName
-```
-配置后，gateway 将使用 myCommandName 作为名称生成 HystrixCommand 对象来进行熔断管理。如果想添加熔断后的回调内容，需要在添加一些配置。
-```
-spring:
-  cloud:
-    gateway:
-      routes:
-      - id: hystrix_route
-        uri: lb://spring-cloud-producer
-        predicates:
-        - Path=/consumingserviceendpoint
-        filters:
-        - name: Hystrix
-          args:
-            name: fallbackcmd
-            fallbackUri: forward:/incaseoffailureusethis
-```
-fallbackUri: forward:/incaseoffailureusethis配置了 fallback 时要会调的路径，当调用 Hystrix 的 fallback 被调用时，请求将转发到/incaseoffailureuset这个 URI。
-
-### 3. 重试路由器  
-RetryGatewayFilter 是 Spring Cloud Gateway 对请求重试提供的一个 GatewayFilter Factory。
-
-配置示例
-```
-spring:
-  cloud:
-    gateway:
-      routes:
-      - id: retry_test
-        uri: lb://spring-cloud-producer
-        predicates:
-        - Path=/retry
-        filters:
-        - name: Retry
-          args:
-            retries: 3
-            statuses: BAD_GATEWAY
-```
-Retry GatewayFilter 通过这四个参数来控制重试机制： retries, statuses, methods, 和 series。
-
-retries：重试次数，默认值是 3 次  
-statuses：HTTP 的状态返回码，取值请参考：org.springframework.http.HttpStatus
-methods：指定哪些方法的请求需要进行重试逻辑，默认值是 GET 方法，取值参考：org.springframework.http.HttpMethod
-series：一些列的状态码配置，取值参考：org.springframework.http.HttpStatus.Series。符合的某段状态码才会进行重试逻辑，默认值是 SERVER_ERROR，值是 5，也就是 5XX(5 开头的状态码)，共有5 个值。
-以上便是项目中常用的一些网关操作，更多关于 Spring Cloud GateWay 的使用请参考官网。
 
 [示例代码-Github](https://github.com/meteor1993/SpringCloudLearning/tree/master/chapter14)
