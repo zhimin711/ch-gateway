@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  # 改镜像会暴露出自身的 `header` 信息
+  gateway:
+    container_name: ch-gateway
+    image: ch-gateway:v1
+    volumes:
+      - /home/zhimin/share/logs:/mnt/share/logs
+      - /home/zhimin/share/plugins:/mnt/share/plugins
+    environment:
+      - JAVA_OPTS=-Dspring.profiles.active=test -javaagent:/mnt/share/plugins/jmx_prometheus_javaagent-0.12.0.jar=7070:/mnt/share/plugins/simple-config.yaml
+    expose:
+        - 7001
+    ports:
+      - "7001:7001"
+    labels:
+      # 设置Host 为 gateway.docker.localhost 进行域名访问
+      - "traefik.http.routers.gateway.rule=Host(`gateway.ch.com`)"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 500M
+        reservations:
+          cpus: '0.5'
+          memory: 200M
+# 使用已存在的 traefik 的 network
+networks:
+  default:
+    external:
+      name: nginx_default
