@@ -195,10 +195,3 @@ gradle bootJar
 #### 参与贡献
 
 1. Fork 本仓库
-
-#### 参考资料
-
-1. [springcloud gateway动态路由实现，mysql存储配置](https://blog.csdn.net/qq_42714869/article/details/92794911)
-
-
-[示例代码-Github](https://github.com/meteor1993/SpringCloudLearning/tree/master/chapter14)
