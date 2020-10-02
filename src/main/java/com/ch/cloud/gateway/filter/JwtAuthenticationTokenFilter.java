@@ -5,6 +5,7 @@ import com.ch.StatusS;
 import com.ch.cloud.client.dto.PermissionDto;
 import com.ch.cloud.gateway.cli.SsoClientService;
 import com.ch.cloud.gateway.cli.UpmsClientService;
+import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.pojo.UserInfo;
 import com.ch.e.PubError;
 import com.ch.result.Result;
@@ -15,7 +16,6 @@ import com.google.common.collect.Maps;
 import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +33,7 @@ import reactor.core.publisher.Mono;
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -54,9 +55,6 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     public static final String CACHE_TOKEN_USER = "gateway:token:user";
 
-    public static final String CACHE_PERMISSIONS_HIDDEN = "gateway:permission:hidden";
-    public static final String CACHE_PERMISSIONS_AUTH = "gateway:permission:auth";
-
     @Resource
     private SsoClientService ssoClientService;
     @Resource
@@ -71,6 +69,14 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         if (checkSkinUrl(url) && !checkAuthUrl(url)) {
             //跳过不需要验证的路径
             return chain.filter(exchange);
+        }
+        Collection<PermissionDto> whiteList = getPermissions(CacheType.PERMISSIONS_WHITE_LIST, null);
+        if (!whiteList.isEmpty()) { // 白名单接口地址
+            boolean ok = checkPermissions(whiteList, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+            if (ok) {
+                //将现在的request，添加当前身份
+                return chain.filter(exchange);
+            }
         }
         //获取token
         String token = exchange.getRequest().getHeaders().getFirst(Constants.TOKEN_HEADER2);
@@ -98,15 +104,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 userBucket.expireAt(res1.get().getExpireAt());
             }
             //redis cache replace sso client findHiddenPermissions
-            RList<PermissionDto> hiddenPermissions = redissonClient.getList(CACHE_PERMISSIONS_HIDDEN);
+            Collection<PermissionDto> hiddenPermissions = getPermissions(CacheType.PERMISSIONS_LOGIN_LIST, null);
 
-            if (hiddenPermissions.isEmpty()) {
-                Result<PermissionDto> res3 = upmsClientService.findHiddenPermissions();
-                if (!res3.isEmpty()) {
-                    hiddenPermissions.addAll(res3.getRows());
-                    hiddenPermissions.expire(30, TimeUnit.MINUTES);
-                }
-            }
             if (!hiddenPermissions.isEmpty()) {
                 boolean ok = checkPermissions(hiddenPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {
@@ -116,17 +115,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             }
 
             //redis cache replace sso client findPermissionsByRoleId
-            RList<PermissionDto> authPermissions = redissonClient.getList(CACHE_PERMISSIONS_AUTH + ":" + userBucket.get().getRoleId());
+            Collection<PermissionDto> authPermissions = getPermissions(CacheType.PERMISSIONS_AUTH_LIST, userBucket.get().getRoleId());
 
-            if (authPermissions.isEmpty()) {
-                Result<PermissionDto> res2 = upmsClientService.findPermissionsByRoleId(userBucket.get().getRoleId());
-                if (res2.isEmpty()) {
-                    return authError(resp, Result.error(PubError.NOT_AUTH));
-                }
-                authPermissions.addAll(res2.getRows());
-                authPermissions.expire(30, TimeUnit.MINUTES);
-
-            }
             boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (!ok) {
                 return authError(resp, Result.error(PubError.NOT_AUTH));
@@ -135,6 +125,34 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             return toUser(exchange, chain, userBucket.get().getUsername());
         }
 //        return null;
+    }
+
+    private Collection<PermissionDto> getPermissions(CacheType cacheType, Long roleId) {
+
+        RList<PermissionDto> permissions = redissonClient.getList(roleId == null ? cacheType.getKey() : cacheType.getKey(roleId.toString()));
+        if (permissions.isEmpty()) {
+            if (cacheType == CacheType.PERMISSIONS_AUTH_LIST && roleId == null) {
+                return permissions;
+            }
+            Result<PermissionDto> res;
+            switch (cacheType) {
+                case PERMISSIONS_WHITE_LIST:
+                    res = upmsClientService.findWhitelistPermissions();
+                    break;
+                case PERMISSIONS_LOGIN_LIST:
+                    res = upmsClientService.findHiddenPermissions();
+                    break;
+                default:
+                    res = upmsClientService.findPermissionsByRoleId(roleId);
+            }
+            if (!res.isEmpty()) {
+                permissions.addAll(res.getRows());
+            } else {
+                permissions.addAll(Collections.emptyList());
+            }
+            permissions.expire(30, TimeUnit.MINUTES);
+        }
+        return permissions;
     }
 
     private String getToken2(ServerHttpRequest request) {
@@ -174,6 +192,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     }
 
     private boolean checkPermissions(Collection<PermissionDto> permissions, String path, HttpMethod method) {
+        if (permissions.isEmpty()) return false;
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
         Map<String, List<PermissionDto>> permissionMap = permissions.stream().collect(Collectors.groupingBy(PermissionDto::getUrl));
         for (Map.Entry<String, List<PermissionDto>> entry : permissionMap.entrySet()) {

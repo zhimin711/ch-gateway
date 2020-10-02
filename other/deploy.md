@@ -13,7 +13,7 @@ docker build -t ch-gateway:v1  /home/zhimin/docker/ch-gateway
 
 ### 启动
 ```
-sudo docker run --name ch-gateway \
+docker run --name ch-gateway \
 --net=none \
 -v /home/zhimin/share/logs:/mnt/share/logs  \
 -m 512M --memory-swap -1 \

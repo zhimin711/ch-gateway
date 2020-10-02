@@ -52,6 +52,8 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
 
     @Value("${nacos.config.server-addr}")
     private String serverAddr;
+    @Value("${nacos.config.namespace}")
+    private String namespace;
 
     private Set<String> routerIds;
 
@@ -59,7 +61,10 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
     public void dynamicRouteByNacosListener() {
         try {
             routerIds = Sets.newHashSet();
-            ConfigService configService = NacosFactory.createConfigService(serverAddr);
+            Properties properties = new Properties();
+            properties.setProperty("serverAddr", serverAddr);
+            properties.setProperty("namespace", namespace);
+            ConfigService configService = NacosFactory.createConfigService(properties);
             configService.getConfig(dataId, group, 5000);
             configService.addListener(dataId, group, new Listener() {
                 @Override
