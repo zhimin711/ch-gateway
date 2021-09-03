@@ -22,7 +22,7 @@ repositories {
     maven { url "https://repo.spring.io/milestone" }
 }
 ext {
-    chVersion = '1.0.3-SNAPSHOT'
+    chVersion = '2.0.0-SNAPSHOT'
     chUpmsApiVersion = '1.0.0-SNAPSHOT'
 
 //    springCloudVersion = 'Greenwich.RELEASE'

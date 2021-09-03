@@ -1,7 +1,7 @@
 package com.ch.cloud.gateway.pojo;
 
 import com.ch.Constants;
-import com.ch.utils.StringExtUtils;
+import com.ch.utils.StringUtilsV2;
 
 /**
  * desc:
@@ -24,6 +24,6 @@ public enum CacheType {
         if (args == null) {
             return key;
         }
-        return key + Constants.SECURITY_SEPARATOR + StringExtUtils.linkStr(Constants.SECURITY_SEPARATOR, args);
+        return key + Constants.SECURITY_SEPARATOR + StringUtilsV2.linkStr(Constants.SECURITY_SEPARATOR, args);
     }
 }
