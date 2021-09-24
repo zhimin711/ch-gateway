@@ -135,7 +135,7 @@ public class GatewayLogUtil {
         AtomicInteger i = new AtomicInteger();
         headers.forEach((name, values) -> {
             if (values.size() == 1) {
-                appendKeyValueEnd(logBuffer, name, values.get(0));
+                appendKeyValueEnd(logBuffer, name, values.get(0).replaceAll("\"","'"));
             } else {
                 logBuffer.append("\"").append(name).append("\":").append(JSONObject.toJSONString(values));
             }

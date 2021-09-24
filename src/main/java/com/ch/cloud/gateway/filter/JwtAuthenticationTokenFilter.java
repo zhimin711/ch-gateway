@@ -48,15 +48,15 @@ import java.util.stream.Collectors;
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private String[] skipUrls = {"/auth/login/**", "/auth/logout/**"};
-    private String[] authUrls = {"/auth/login/token/user"};
-    private static final String DOWNLOAD_PATTERN = "/**/download/**";
-    private static final String IMAGES_PATTERN = "/**/images/**";
+    private              String[] skipUrls         = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**"};
+    private              String[] authUrls         = {"/auth/login/token/user"};
+    private static final String   DOWNLOAD_PATTERN = "/**/download/**";
+    private static final String   IMAGES_PATTERN   = "/**/images/**";
 
     public static final String CACHE_TOKEN_USER = "gateway:token:user";
 
     @Resource
-    private SsoClientService ssoClientService;
+    private SsoClientService  ssoClientService;
     @Resource
     private UpmsClientService upmsClientService;
 

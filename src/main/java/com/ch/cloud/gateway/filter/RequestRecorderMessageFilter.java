@@ -9,6 +9,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,10 @@ import java.util.List;
 @Configuration
 @Log4j2
 public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
+
+    @Value("${rocketmq.enabled:false}")
+    private Boolean mqOn;
+
     @Resource
     private RocketMQTemplate rocketMQTemplate;
 
@@ -75,18 +80,18 @@ public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
                         topic += ":" + uList.get(0);
                     }
 //                    rocketMQTemplate.convertAndSend("request-logs", logStr);
+                    if (mqOn)
+                        rocketMQTemplate.asyncSend(topic, logStr, new SendCallback() {
+                            @Override
+                            public void onSuccess(SendResult sendResult) {
+                                log.info("{} => {}", ex.getRequest().getURI(), sendResult.getMsgId());
+                            }
 
-                    rocketMQTemplate.asyncSend(topic, logStr, new SendCallback() {
-                        @Override
-                        public void onSuccess(SendResult sendResult) {
-                            log.info("{} => {}", ex.getRequest().getURI(), sendResult.getMsgId());
-                        }
-
-                        @Override
-                        public void onException(Throwable e) {
-                            log.error("send error: " + ex.getRequest().getURI(), e);
-                        }
-                    });
+                            @Override
+                            public void onException(Throwable e) {
+                                log.error("send error: " + ex.getRequest().getURI(), e);
+                            }
+                        });
                 });
     }
 
