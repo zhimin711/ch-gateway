@@ -100,8 +100,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                     }
                     return authError(resp, Result.error(err, res1.getMessage()));
                 }
-                userBucket.set(res1.get());
-                userBucket.expireAt(res1.get().getExpireAt());
+                userBucket.set(res1.get(), res1.get().getExpireAt(), TimeUnit.MICROSECONDS);
             }
             //redis cache replace sso client findHiddenPermissions
             Collection<PermissionDto> hiddenPermissions = getPermissions(CacheType.PERMISSIONS_LOGIN_LIST, null);
@@ -134,25 +133,33 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             if (cacheType == CacheType.PERMISSIONS_AUTH_LIST && roleId == null) {
                 return permissions;
             }
-            Result<PermissionDto> res;
-            switch (cacheType) {
-                case PERMISSIONS_WHITE_LIST:
-                    res = upmsClientService.findWhitelistPermissions();
-                    break;
-                case PERMISSIONS_LOGIN_LIST:
-                    res = upmsClientService.findHiddenPermissions();
-                    break;
-                default:
-                    res = upmsClientService.findPermissionsByRoleId(roleId);
-            }
-            if (!res.isEmpty()) {
-                permissions.addAll(res.getRows());
-            } else {
-                permissions.addAll(Collections.emptyList());
-            }
-            permissions.expire(30, TimeUnit.MINUTES);
+            if (cachePermissions(cacheType, roleId, permissions)) return permissions;
         }
         return permissions;
+    }
+
+    private synchronized boolean cachePermissions(CacheType cacheType, Long roleId, RList<PermissionDto> permissions) {
+        Result<PermissionDto> res;
+        switch (cacheType) {
+            case PERMISSIONS_WHITE_LIST:
+                res = upmsClientService.findWhitelistPermissions();
+                break;
+            case PERMISSIONS_LOGIN_LIST:
+                res = upmsClientService.findHiddenPermissions();
+                break;
+            default:
+                res = upmsClientService.findPermissionsByRoleId(roleId);
+        }
+        if(!permissions.isEmpty()){
+            return true;
+        }
+        if (!res.isEmpty()) {
+            permissions.addAll(res.getRows());
+        } else {
+            permissions.addAll(Collections.emptyList());
+        }
+        permissions.expire(30, TimeUnit.MINUTES);
+        return false;
     }
 
     private String getToken2(ServerHttpRequest request) {
