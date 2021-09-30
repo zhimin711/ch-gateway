@@ -61,5 +61,26 @@
       }
     ],
     "uri": "lb://ch-wiki"
+  },
+  {
+    "id": "nacos",
+    "order": 0,
+    "predicates": [
+      {
+        "args": {
+          "pattern": "/nacos/**"
+        },
+        "name": "Path"
+      }
+    ],
+    "filters": [
+      {
+        "args": {
+          "parts": "0"
+        },
+        "name": "StripPrefix"
+      }
+    ],
+    "uri": "http://nacos.nacos.svc.cluster.local:8848"
   }
 ]
