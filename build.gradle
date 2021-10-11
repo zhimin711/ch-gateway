@@ -25,8 +25,8 @@ ext {
     chVersion = '2.0.0-SNAPSHOT'
     chUpmsApiVersion = '1.0.0-SNAPSHOT'
 
-//    springCloudVersion = 'Greenwich.RELEASE'
     set('springCloudVersion', "Hoxton.SR1")
+//    set('springCloudVersion', "2020.0.4")
     springOauth2 = '2.3.4.RELEASE'
     alicloudVersion = '+' //0.2.1.RELEASE
 
@@ -41,6 +41,8 @@ dependencies {
 
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
+//    implementation "com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
+//    implementation "com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
 
     implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel:2.1.0.RELEASE'
     implementation 'com.alibaba.cloud:spring-cloud-alibaba-sentinel-gateway:2.1.0.RELEASE'
@@ -52,11 +54,8 @@ dependencies {
 //    implementation 'com.alibaba:druid:1.1.+'
     implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:2.1.1'
 
-//    implementation 'org.springframework.boot:spring-boot-starter-web'
 //    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-//    implementation 'org.springframework.boot:spring-boot-starter-jetty'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-// https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api
     implementation group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.1'
     
 //    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -68,7 +67,6 @@ dependencies {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-actuator'
     }
 
-//    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-zuul'
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
 //    implementation 'org.springframework.cloud:spring-cloud-starter-ribbon'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'

@@ -1,6 +1,7 @@
 package com.ch.cloud.gateway.pojo;
 
 import com.ch.Constants;
+import com.ch.Separator;
 import com.ch.utils.StringUtilsV2;
 
 /**
@@ -24,6 +25,6 @@ public enum CacheType {
         if (args == null) {
             return key;
         }
-        return key + Constants.SECURITY_SEPARATOR + StringUtilsV2.linkStr(Constants.SECURITY_SEPARATOR, args);
+        return key + Separator.SECURITY + StringUtilsV2.linkStr(Separator.SECURITY, args);
     }
 }

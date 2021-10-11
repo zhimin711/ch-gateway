@@ -2,7 +2,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
   profiles:
-    active: test   # 指定启动环境
+    active: local   # 指定启动环境
 
 # 开发环境
 ---
