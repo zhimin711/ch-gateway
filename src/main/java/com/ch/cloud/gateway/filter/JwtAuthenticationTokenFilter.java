@@ -7,6 +7,7 @@ import com.ch.cloud.gateway.cli.SsoClientService;
 import com.ch.cloud.gateway.cli.UpmsClientService;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.pojo.UserInfo;
+import com.ch.cloud.gateway.utils.PathConstants;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
@@ -48,10 +49,8 @@ import java.util.stream.Collectors;
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private              String[] skipUrls         = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**"};
-    private              String[] authUrls         = {"/auth/login/token/user"};
-    private static final String   DOWNLOAD_PATTERN = "/**/download/**";
-    private static final String   IMAGES_PATTERN   = "/**/images/**";
+    private String[] skipUrls = {/*"/auth/captcha/**", */"/auth/login/**", "/auth/logout/**"};
+    private String[] authUrls = {"/auth/login/token/user"};
 
     public static final String CACHE_TOKEN_USER = "gateway:token:user";
 
@@ -170,8 +169,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
         String path = request.getURI().getPath();
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        boolean isDownload = pathMatcher.match(DOWNLOAD_PATTERN, path);
-        boolean isImages = pathMatcher.match(IMAGES_PATTERN, path);
+        boolean isDownload = pathMatcher.match(PathConstants.DOWNLOAD_PATTERN, path);
+        boolean isImages = pathMatcher.match(PathConstants.IMAGES_PATTERN, path);
         if (!(isDownload || isImages)) {
             return null;
         }

@@ -1,6 +1,6 @@
 plugins {
-    id 'org.springframework.boot' version '2.2.2.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+    id 'org.springframework.boot' version '2.3.8.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.10.RELEASE'
     id 'java'
 }
 
@@ -15,9 +15,8 @@ configurations {
 }
 repositories {
     mavenLocal()
-    maven {
-        url 'https://maven.aliyun.com/repository/public/'
-    }
+    maven { url "https://maven.aliyun.com/repository/central" }
+    jcenter()
     mavenCentral()
     maven { url "https://repo.spring.io/milestone" }
 }
@@ -25,12 +24,12 @@ ext {
     chVersion = '2.0.0-SNAPSHOT'
     chUpmsApiVersion = '1.0.0-SNAPSHOT'
 
-    set('springCloudVersion', "Hoxton.SR1")
-//    set('springCloudVersion', "2020.0.4")
+    set('springCloudVersion', "Hoxton.SR9")
     springOauth2 = '2.3.4.RELEASE'
     alicloudVersion = '+' //0.2.1.RELEASE
 
-    swagger2Version = '2.7.0'
+    redissonVersion = '3.12.0'
+    swagger2Version = '2.9.2'
 }
 
 dependencies {
@@ -41,13 +40,13 @@ dependencies {
 
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
     implementation "org.springframework.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
-//    implementation "com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-config:${alicloudVersion}"
-//    implementation "com.alibaba.cloud:spring-cloud-starter-alibaba-nacos-discovery:${alicloudVersion}"
 
-    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel:2.1.0.RELEASE'
-    implementation 'com.alibaba.cloud:spring-cloud-alibaba-sentinel-gateway:2.1.0.RELEASE'
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel:2.2.1.RELEASE'
+    implementation 'com.alibaba.cloud:spring-cloud-alibaba-sentinel-gateway:2.2.1.RELEASE'
 
-    runtimeOnly 'mysql:mysql-connector-java'
+    implementation 'com.alibaba.cloud:spring-cloud-starter-alibaba-sentinel:2.2.1.RELEASE'
+    implementation 'com.alibaba.cloud:spring-cloud-alibaba-sentinel-gateway:2.2.1.RELEASE'
+
 //    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:1.1.1'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.1.1'
 //    implementation "mysql:mysql-connector-java:5.1.30"
@@ -81,11 +80,12 @@ dependencies {
 //    https://mvnrepository.com/artifact/org.apache.rocketmq/rocketmq-spring-boot-starter
     implementation 'org.apache.rocketmq:rocketmq-spring-boot-starter:2.1.0'
 
-    implementation "io.springfox:springfox-swagger2:${swagger2Version}"
+//    implementation "io.springfox:springfox-swagger2:${swagger2Version}"
+    implementation "io.springfox:springfox-boot-starter:3.0.0"
 
+    runtimeOnly 'mysql:mysql-connector-java'
     compileOnly 'org.projectlombok:lombok'
 //    runtimeOnly 'org.springframework.boot:spring-boot-devtools'
-//    runtimeOnly 'mysql:mysql-connector-java'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
 //    testImplementation 'org.springframework.boot:spring-boot-starter-test'

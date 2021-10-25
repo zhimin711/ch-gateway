@@ -3,6 +3,7 @@ package com.ch.cloud.gateway.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.nacos.api.NacosFactory;
+import com.alibaba.nacos.api.PropertyKeyConst;
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
@@ -52,7 +53,7 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
 
     @Value("${nacos.config.server-addr}")
     private String serverAddr;
-    @Value("${nacos.config.namespace}")
+    @Value("${nacos.config.namespace:}")
     private String namespace;
 
     private Set<String> routerIds;
@@ -62,8 +63,8 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
         try {
             routerIds = Sets.newHashSet();
             Properties properties = new Properties();
-            properties.setProperty("serverAddr", serverAddr);
-            properties.setProperty("namespace", namespace);
+            properties.put(PropertyKeyConst.SERVER_ADDR, serverAddr);
+            properties.put(PropertyKeyConst.NAMESPACE, namespace);
             ConfigService configService = NacosFactory.createConfigService(properties);
             configService.getConfig(dataId, group, 5000);
             configService.addListener(dataId, group, new Listener() {

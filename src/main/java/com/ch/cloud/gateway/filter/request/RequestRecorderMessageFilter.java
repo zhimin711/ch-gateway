@@ -1,4 +1,4 @@
-package com.ch.cloud.gateway.filter;
+package com.ch.cloud.gateway.filter.request;
 
 
 import com.ch.Constants;
@@ -11,20 +11,16 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
-import java.net.URI;
 import java.util.List;
 
 @Configuration
 @Log4j2
-public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
+public class RequestRecorderMessageFilter extends AbsRequestRecorderFilter {
 
     @Value("${rocketmq.enabled:false}")
     private Boolean mqOn;
@@ -32,23 +28,8 @@ public class RequestRecorderMessageFilter implements GlobalFilter, Ordered {
     @Resource
     private RocketMQTemplate rocketMQTemplate;
 
-
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        ServerHttpRequest originalRequest = exchange.getRequest();
-        URI originalRequestUrl = originalRequest.getURI();
-
-        //只记录http的请求
-        String scheme = originalRequestUrl.getScheme();
-        if ((!"http".equals(scheme) && !"https".equals(scheme))) {
-            return chain.filter(exchange);
-        }
-
-        String upgrade = originalRequest.getHeaders().getUpgrade();
-        if ("websocket".equalsIgnoreCase(upgrade)) {
-            return chain.filter(exchange);
-        }
-
+    protected Mono<Void> filterLog(ServerWebExchange exchange, GatewayFilterChain chain) {
         // 在 GatewayFilter 之前执行， 此时的request时最初的request
         RecorderServerHttpRequestDecorator request = new RecorderServerHttpRequestDecorator(exchange.getRequest());
 

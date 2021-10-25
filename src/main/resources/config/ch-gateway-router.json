@@ -39,6 +39,9 @@
         "name": "StripPrefix"
       }
     ],
+    "metadata": {
+      "swaggerPath": "/upms/v2/api-docs"
+    },
     "uri": "lb://ch-upms"
   },
   {
@@ -60,6 +63,9 @@
         "name": "StripPrefix"
       }
     ],
+    "metadata": {
+      "swaggerPath": "/wiki/v2/api-docs"
+    },
     "uri": "lb://ch-wiki"
   },
   {

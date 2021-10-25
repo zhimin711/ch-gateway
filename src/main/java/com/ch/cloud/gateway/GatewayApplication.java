@@ -20,11 +20,12 @@ import org.springframework.web.reactive.config.EnableWebFlux;
  * @date 2019/4/14 3:22 PM
  */
 @SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
-@EnableDiscoveryClient
+//@EnableDiscoveryClient
 @EnableFeignClients
 @EnableWebFlux
 @EnableEncryptableProperties
 @EnableHystrix
+@EnableOpenApi
 public class GatewayApplication {
 
     /**
