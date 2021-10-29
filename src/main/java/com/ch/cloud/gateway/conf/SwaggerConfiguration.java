@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import springfox.documentation.swagger.web.SwaggerResource;
 import springfox.documentation.swagger.web.SwaggerResourcesProvider;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import java.util.*;
 
@@ -60,7 +59,8 @@ public class SwaggerConfiguration implements SwaggerResourcesProvider {
         Set<String> dealed = new HashSet<>();
         routeHostMap.forEach((k, v) -> {
             // 拼接url，样式为/serviceId/v2/api-info，当网关调用这个接口时，会自动通过负载均衡寻找对应的主机
-            String url = routeApiMap.get(k) != null ? routeApiMap.get(k) : "/" + v + SWAGGER2URL;
+            if (routeApiMap.get(k) == null) return;
+            String url = routeApiMap.get(k);
 
             if (!dealed.contains(url)) {
                 dealed.add(url);
@@ -72,7 +72,8 @@ public class SwaggerConfiguration implements SwaggerResourcesProvider {
         });
         return resources;
     }
-//    @Bean
+
+    //    @Bean
 //    public Docket createRestApi() {
 //        return new Docket(DocumentationType.OAS_30)
 //                .apiInfo(apiInfo())

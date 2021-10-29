@@ -1,6 +1,5 @@
 package com.ch.cloud.gateway.controller;
 
-import com.ch.cloud.gateway.conf.SwaggerConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -22,7 +21,7 @@ import java.util.List;
 public class SwaggerResourceController {
 
     @Autowired
-            @Qualifier("swaggerConfiguration")
+    @Qualifier("swaggerConfiguration")
     SwaggerResourcesProvider swaggerResourceProvider;
 
 

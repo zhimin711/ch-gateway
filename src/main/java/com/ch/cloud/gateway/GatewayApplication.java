@@ -12,6 +12,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.reactive.config.EnableWebFlux;
+import springfox.documentation.oas.annotations.EnableOpenApi;
 
 /**
  * desc:

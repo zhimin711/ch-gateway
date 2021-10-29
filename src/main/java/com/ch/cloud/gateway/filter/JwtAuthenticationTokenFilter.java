@@ -13,7 +13,6 @@ import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.EncryptUtils;
 import com.ch.utils.JSONUtils;
-import com.google.common.collect.Maps;
 import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
@@ -22,11 +21,13 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,8 +50,8 @@ import java.util.stream.Collectors;
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private String[] skipUrls = {/*"/auth/captcha/**", */"/auth/login/**", "/auth/logout/**"};
-    private String[] authUrls = {"/auth/login/token/user"};
+    private final String[] skipUrls = {/*"/auth/captcha/**", */"/auth/login/**", "/auth/logout/**"};
+    private final String[] authUrls = {"/auth/login/token/user"};
 
     public static final String CACHE_TOKEN_USER = "gateway:token:user";
 
@@ -78,10 +79,10 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             }
         }
         //获取token
-        String token = exchange.getRequest().getHeaders().getFirst(Constants.TOKEN_HEADER2);
+        String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
         ServerHttpResponse resp = exchange.getResponse();
         if (CommonUtils.isEmpty(token)) {
-            token = getToken2(exchange.getRequest());
+            token = getToken2(exchange.getRequest(), url);
         }
         if (CommonUtils.isEmpty(token)) {
             //没有token
@@ -149,7 +150,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             default:
                 res = upmsClientService.findPermissionsByRoleId(roleId);
         }
-        if(!permissions.isEmpty()){
+        if (!permissions.isEmpty()) {
             return true;
         }
         if (!res.isEmpty()) {
@@ -161,38 +162,31 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         return false;
     }
 
-    private String getToken2(ServerHttpRequest request) {
+    private String getToken2(ServerHttpRequest request, String url) {
         String query = request.getURI().getQuery();
         if (request.getMethod() != HttpMethod.GET || CommonUtils.isEmpty(query)) {
             return null;
         }
 
-        String path = request.getURI().getPath();
+        MultiValueMap<String, HttpCookie> cookies = request.getCookies();
+        HttpCookie cookie = cookies.getFirst("TOKEN");
+        if (cookie == null) return null;
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        boolean isDownload = pathMatcher.match(PathConstants.DOWNLOAD_PATTERN, path);
-        boolean isImages = pathMatcher.match(PathConstants.IMAGES_PATTERN, path);
-        if (!(isDownload || isImages)) {
-            return null;
-        }
-        String[] paramsArr = query.split("&");
-        Map<String, String> params = Maps.newConcurrentMap();
-        for (String pStr : paramsArr) {
-            if (CommonUtils.isEmpty(pStr) || !pStr.contains("=")) {
-                continue;
+        boolean isNeed = false;
+        for (String cookieUrl : PathConstants.COOKIE_URLS) {
+            if (pathMatcher.match(cookieUrl, url)) {
+                isNeed = true;
+                break;
             }
-            int s = pStr.indexOf("=");
-            if (s <= 1) {
-                continue;
-            }
-            String key = pStr.substring(0, s);
-            String value = pStr.substring(s + 1);
-            params.put(key, value);
         }
-        return params.getOrDefault(Constants.TOKEN, null);
+        if (!isNeed) {
+            return "";
+        }
+        return cookie.getValue();
     }
 
     private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, String username) {
-        ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.TOKEN_USER, username).build();
+        ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.X_TOKEN_USER, username).build();
         ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
         return chain.filter(mutableExchange);
     }
@@ -243,7 +237,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private void refreshToken(ServerHttpResponse originalResponse, String refreshToken) {
 //        originalResponse.setStatusCode(HttpStatus.OK);
         //token过期设置刷新标识
-        originalResponse.getHeaders().add("X-TOKEN-REFRESH", refreshToken);
+        originalResponse.getHeaders().add(Constants.X_REFRESH_TOKEN, refreshToken);
     }
 
     /**

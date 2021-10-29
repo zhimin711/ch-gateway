@@ -27,7 +27,7 @@ public class GatewayConfig {
     @Bean
     public KeyResolver clientKeyResolver() {
         return (exchange) -> {
-            String clientKey = exchange.getRequest().getHeaders().getFirst(Constants.TOKEN_HEADER2);
+            String clientKey = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
             if (CommonUtils.isEmpty(clientKey)) {
                 clientKey = getIP(exchange.getRequest());
             }
