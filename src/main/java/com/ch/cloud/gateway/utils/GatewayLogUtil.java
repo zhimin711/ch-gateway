@@ -192,7 +192,7 @@ public class GatewayLogUtil {
         ServerHttpRequest request = exchange.getRequest();
         appendKeyValue(logBuffer, "url", request.getPath().value());
         appendKeyValue(logBuffer, "method", request.getMethodValue());
-        List<String> userList = request.getHeaders().getOrEmpty(Constants.TOKEN_USER);
+        List<String> userList = request.getHeaders().getOrEmpty(Constants.X_TOKEN_USER);
         if (CommonUtils.isNotEmpty(userList)) {
             appendKeyValue(logBuffer, "username", userList.get(0));
         }

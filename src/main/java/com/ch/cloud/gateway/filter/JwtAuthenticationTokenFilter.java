@@ -82,7 +82,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
         ServerHttpResponse resp = exchange.getResponse();
         if (CommonUtils.isEmpty(token)) {
-            token = getToken2(exchange.getRequest(), url);
+            token = getCookieToken(exchange.getRequest(), url);
         }
         if (CommonUtils.isEmpty(token)) {
             //没有token
@@ -162,9 +162,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         return false;
     }
 
-    private String getToken2(ServerHttpRequest request, String url) {
-        String query = request.getURI().getQuery();
-        if (request.getMethod() != HttpMethod.GET || CommonUtils.isEmpty(query)) {
+    private String getCookieToken(ServerHttpRequest request, String url) {
+        if (request.getMethod() != HttpMethod.GET) {
             return null;
         }
 
