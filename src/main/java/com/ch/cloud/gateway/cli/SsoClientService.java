@@ -13,6 +13,9 @@ public interface SsoClientService {
     @GetMapping("login/token/info")
     Result<UserInfo> tokenInfo(@RequestHeader(Constants.X_TOKEN) String token);
 
+    @GetMapping("user/info")
+    Result<UserInfo> userInfo(@RequestHeader(Constants.X_TOKEN) String token);
+
     @GetMapping("login/token/refresh")
     Result<UserInfo> tokenInfo(@RequestHeader(Constants.X_TOKEN) String token, @RequestHeader(Constants.X_REFRESH_TOKEN) String refreshToken);
 

@@ -16,6 +16,7 @@ import com.ch.utils.JSONUtils;
 import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RedissonClient;
+import org.redisson.codec.JsonJacksonCodec;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
@@ -50,10 +51,11 @@ import java.util.stream.Collectors;
 @Configuration
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private final String[] skipUrls = {/*"/auth/captcha/**", */"/auth/login/**", "/auth/logout/**"};
-    private final String[] authUrls = {"/auth/login/token/user"};
+    private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**"};
+    private final String[] authUrls = {"/auth/user/**"};
 
-    public static final String CACHE_TOKEN_USER = "gateway:token:user";
+    public static final String GATEWAY_TOKEN = "gateway:token:";
+    public static final String GATEWAY_USER  = "gateway:user:";
 
     @Resource
     private SsoClientService  ssoClientService;
@@ -66,7 +68,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String url = exchange.getRequest().getURI().getPath();
-        if (checkSkinUrl(url) && !checkAuthUrl(url)) {
+        if (checkSkinUrl(url)) {
             //跳过不需要验证的路径
             return chain.filter(exchange);
         }
@@ -81,6 +83,12 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         //获取token
         String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
         ServerHttpResponse resp = exchange.getResponse();
+        if (checkAuthUrl(url)) {
+            if (CommonUtils.isEmpty(token)){
+                return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
+            }
+            return chain.filter(exchange);
+        }
         if (CommonUtils.isEmpty(token)) {
             token = getCookieToken(exchange.getRequest(), url);
         }
@@ -90,18 +98,31 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         } else {
             //有token
             //redis cache replace sso client
-            RBucket<UserInfo> userBucket = redissonClient.getBucket(CACHE_TOKEN_USER + ":" + EncryptUtils.md5(token));
+            String md5 = EncryptUtils.md5(token);
+            RBucket<UserInfo> userBucket = redissonClient.getBucket(GATEWAY_TOKEN + md5, JsonJacksonCodec.INSTANCE);
             if (!userBucket.isExists()) {
                 Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
-                if (res1.isEmpty()) {
+                Result<UserInfo> res2 = ssoClientService.userInfo(token);
+                if (res1.isEmpty() || res2.isEmpty()) {
                     PubError err = PubError.fromCode(res1.getCode());
                     if (err == PubError.EXPIRED) {
                         refreshToken(resp, StatusS.ENABLED);
                     }
                     return authError(resp, Result.error(err, res1.getMessage()));
                 }
-                userBucket.set(res1.get(), res1.get().getExpireAt(), TimeUnit.MICROSECONDS);
+                UserInfo user = res1.get();
+                user.setUserId(res2.get().getUserId());
+                user.setRoleId(res2.get().getRoleId());
+//                user.setRoleId(res2.get().getRoleId());
+
+                RBucket<String> tokenBucket = redissonClient.getBucket(GATEWAY_USER + res1.get().getUsername());
+                if (tokenBucket.isExists()) {
+                    redissonClient.getBucket(GATEWAY_TOKEN + tokenBucket.get()).delete();
+                }
+                tokenBucket.set(md5);
+                userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
             }
+
             //redis cache replace sso client findHiddenPermissions
             Collection<PermissionDto> hiddenPermissions = getPermissions(CacheType.PERMISSIONS_LOGIN_LIST, null);
 
@@ -128,7 +149,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private Collection<PermissionDto> getPermissions(CacheType cacheType, Long roleId) {
 
-        RList<PermissionDto> permissions = redissonClient.getList(roleId == null ? cacheType.getKey() : cacheType.getKey(roleId.toString()));
+        RList<PermissionDto> permissions = redissonClient.getList(roleId == null ? cacheType.getKey() : cacheType.getKey(roleId.toString()), JsonJacksonCodec.INSTANCE);
         if (permissions.isEmpty()) {
             if (cacheType == CacheType.PERMISSIONS_AUTH_LIST && roleId == null) {
                 return permissions;
@@ -225,7 +246,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         boolean isNeed = false;
         for (String authUrl : authUrls) {
             if (pathMatcher.match(authUrl, url)) {
-//                isNeed = true;
+                isNeed = true;
                 break;
             }
         }
