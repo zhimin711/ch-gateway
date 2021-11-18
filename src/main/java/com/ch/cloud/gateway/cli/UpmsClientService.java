@@ -19,5 +19,8 @@ public interface UpmsClientService extends com.ch.cloud.client.UpmsClientService
     @GetMapping({"permission/whitelist"})
     Result<PermissionDto> findWhitelistPermissions();
 
+    @GetMapping({"permission/cookie"})
+    Result<PermissionDto> findCookiePermissions();
+
 }
 

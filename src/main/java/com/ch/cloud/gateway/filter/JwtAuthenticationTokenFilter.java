@@ -84,13 +84,13 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
         ServerHttpResponse resp = exchange.getResponse();
         if (checkAuthUrl(url)) {
-            if (CommonUtils.isEmpty(token)){
+            if (CommonUtils.isEmpty(token)) {
                 return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
             }
             return chain.filter(exchange);
         }
         if (CommonUtils.isEmpty(token)) {
-            token = getCookieToken(exchange.getRequest(), url);
+            token = getCookieToken(exchange.getRequest());
         }
         if (CommonUtils.isEmpty(token)) {
             //没有token
@@ -139,7 +139,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
             boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (!ok) {
-                return authError(resp, Result.error(PubError.NOT_AUTH));
+                return authError(resp, Result.error(PubError.NOT_AUTH, url + " not authority!"));
             }
             //将现在的request，添加当前身份
             return toUser(exchange, chain, userBucket.get().getUsername());
@@ -168,6 +168,9 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             case PERMISSIONS_LOGIN_LIST:
                 res = upmsClientService.findHiddenPermissions();
                 break;
+            case PERMISSIONS_COOKIE_LIST:
+                res = upmsClientService.findCookiePermissions();
+                break;
             default:
                 res = upmsClientService.findPermissionsByRoleId(roleId);
         }
@@ -183,25 +186,15 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         return false;
     }
 
-    private String getCookieToken(ServerHttpRequest request, String url) {
-        if (request.getMethod() != HttpMethod.GET) {
+    private String getCookieToken(ServerHttpRequest request) {
+        Collection<PermissionDto> permissions = getPermissions(CacheType.PERMISSIONS_COOKIE_LIST, null);
+        boolean ok = checkPermissions(permissions, request.getURI().getPath(), request.getMethod());
+        if (!ok) {
             return null;
         }
-
         MultiValueMap<String, HttpCookie> cookies = request.getCookies();
         HttpCookie cookie = cookies.getFirst("TOKEN");
         if (cookie == null) return null;
-        AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        boolean isNeed = false;
-        for (String cookieUrl : PathConstants.COOKIE_URLS) {
-            if (pathMatcher.match(cookieUrl, url)) {
-                isNeed = true;
-                break;
-            }
-        }
-        if (!isNeed) {
-            return "";
-        }
         return cookie.getValue();
     }
 
@@ -267,7 +260,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
      * @param result 错误信息
      * @return
      */
-    private Mono<Void> authError(ServerHttpResponse resp, Result result) {
+    private Mono<Void> authError(ServerHttpResponse resp, Result<?> result) {
         resp.setStatusCode(HttpStatus.UNAUTHORIZED);
         resp.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
 //        Result<Object> res = Result.error(PubError.NOT_AUTH, mess);

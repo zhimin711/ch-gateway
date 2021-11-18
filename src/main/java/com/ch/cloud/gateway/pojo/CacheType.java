@@ -13,6 +13,7 @@ import com.ch.utils.StringUtilsV2;
 public enum CacheType {
     PERMISSIONS_WHITE_LIST("gateway:permission:whitelist"),
     PERMISSIONS_LOGIN_LIST("gateway:permission:login"),
+    PERMISSIONS_COOKIE_LIST("gateway:permission:cookie"),
     PERMISSIONS_AUTH_LIST("gateway:permission:auth");
 
     private final String key;
@@ -22,7 +23,7 @@ public enum CacheType {
     }
 
     public String getKey(String... args) {
-        if (args == null) {
+        if (args == null || args.length == 0) {
             return key;
         }
         return key + Separator.SECURITY + StringUtilsV2.linkStr(Separator.SECURITY, args);
