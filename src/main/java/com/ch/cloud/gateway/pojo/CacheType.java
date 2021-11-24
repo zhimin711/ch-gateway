@@ -14,7 +14,9 @@ public enum CacheType {
     PERMISSIONS_WHITE_LIST("gateway:permission:whitelist"),
     PERMISSIONS_LOGIN_LIST("gateway:permission:login"),
     PERMISSIONS_COOKIE_LIST("gateway:permission:cookie"),
-    PERMISSIONS_AUTH_LIST("gateway:permission:auth");
+    PERMISSIONS_AUTH_LIST("gateway:permission:auth"),
+    GATEWAY_TOKEN("gateway:token"),
+    GATEWAY_USER("gateway:user");
 
     private final String key;
 

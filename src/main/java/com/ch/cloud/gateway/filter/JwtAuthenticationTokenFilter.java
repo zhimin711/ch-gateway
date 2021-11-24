@@ -54,9 +54,6 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**"};
     private final String[] authUrls = {"/auth/user/**"};
 
-    public static final String GATEWAY_TOKEN = "gateway:token:";
-    public static final String GATEWAY_USER  = "gateway:user:";
-
     @Resource
     private SsoClientService  ssoClientService;
     @Resource
@@ -99,7 +96,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             //有token
             //redis cache replace sso client
             String md5 = EncryptUtils.md5(token);
-            RBucket<UserInfo> userBucket = redissonClient.getBucket(GATEWAY_TOKEN + md5, JsonJacksonCodec.INSTANCE);
+            RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
             if (!userBucket.isExists()) {
                 Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
                 Result<UserInfo> res2 = ssoClientService.userInfo(token);
@@ -115,9 +112,9 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 user.setRoleId(res2.get().getRoleId());
 //                user.setRoleId(res2.get().getRoleId());
 
-                RBucket<String> tokenBucket = redissonClient.getBucket(GATEWAY_USER + res1.get().getUsername());
+                RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(res1.get().getUsername()));
                 if (tokenBucket.isExists()) {
-                    redissonClient.getBucket(GATEWAY_TOKEN + tokenBucket.get()).delete();
+                    redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
                 }
                 tokenBucket.set(md5);
                 userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
