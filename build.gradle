@@ -15,8 +15,11 @@ configurations {
 }
 repositories {
     mavenLocal()
+    maven {
+        allowInsecureProtocol = true
+        url 'http://192.168.0.253:8081/repository/maven-public/'
+    }
     maven { url "https://maven.aliyun.com/repository/central" }
-    jcenter()
     mavenCentral()
     maven { url "https://repo.spring.io/milestone" }
 }
