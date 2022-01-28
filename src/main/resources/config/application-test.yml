@@ -59,37 +59,6 @@ spring:
           lowerCaseServiceId: true   #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了），比如以/service-hi/*的请求路径被路由转发到服务名为service-hi的服务上。
           filters:
             - StripPrefix=1
-      routes:
-        - id: sso
-          uri: lb://ch-sso
-          predicates:
-            - Path=/auth/**
-          filters:
-            - StripPrefix=1
-        - id: upms
-          uri:  lb://ch-upms
-          predicates:
-            - Path=/upms/**
-          filters:
-            - StripPrefix=1
-        - id: kafka
-          uri:  lb://ch-kafka
-          predicates:
-            - Path=/kafka/**
-          filters:
-            - StripPrefix=1
-        - id: sys
-          uri:  lb://ch-sys
-          predicates:
-            - Path=/sys/**
-          filters:
-            - StripPrefix=1
-        - id: wiki
-          uri:  lb://ch-wiki
-          predicates:
-            - Path=/wiki/**
-          filters:
-            - StripPrefix=1
       default-filters:
         - name: Retry
           args:
@@ -124,7 +93,6 @@ hystrix:
 
 logging:
   config: classpath:config/logback-test.xml
-  path: logs/ch-gateway
   level:
     com.ch: debug
     org.springframework.cloud: info

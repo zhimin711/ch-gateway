@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ch-upms
+  namespace: ch
+  labels:
+    app: ch-gateway
+  annotations:
+    kubesphere.io/creator: zhimin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ch-gateway
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ch-gateway
+    spec:
+      containers:
+        - name: container-h4jxja
+          image: 'hub.ch.cn/ch/ch-gateway:${DATETIME}'
+          ports:
+            - name: tcp-8080
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: JAVA_OPTS
+              value: >-
+                -Dnacos.config.server-addr=nacos.public.svc.cluster.local:8848
+                -Dnacos.config.namespace=e9ae1f48-6c01-4a07-862c-98bc69c17819
+      imagePullSecrets:
+        - name: ch-hub

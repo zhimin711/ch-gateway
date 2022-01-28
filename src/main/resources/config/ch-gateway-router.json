@@ -87,6 +87,6 @@
         "name": "StripPrefix"
       }
     ],
-    "uri": "http://nacos.nacos.svc.cluster.local:8848"
+    "uri": "http://nacos-svc.public.svc.cluster.local:8848"
   }
 ]
