@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ch-upms
+  name: ch-gateway
   namespace: ch
   labels:
     app: ch-gateway
