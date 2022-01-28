@@ -55,7 +55,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private final String[] authUrls = {"/auth/user/**"};
 
     @Resource
-    private SsoClientService  ssoClientService;
+    private SsoClientService ssoClientService;
     @Resource
     private UpmsClientService upmsClientService;
 
@@ -169,7 +169,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 res = upmsClientService.findCookiePermissions();
                 break;
             default:
-                res = upmsClientService.findPermissionsByRoleId(roleId);
+                res = upmsClientService.findPermissionsByRoleId(roleId, null);
         }
         if (!permissions.isEmpty()) {
             return true;
