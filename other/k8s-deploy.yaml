@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: container-h4jxja
-          image: '${hub_addr}/ch/${img_name}'
+          image: 'registry.kubeoperator.io:8082/ch/${img_name}'
           ports:
             - name: tcp-8080
               containerPort: 8080
