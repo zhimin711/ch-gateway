@@ -13,8 +13,10 @@ import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.EncryptUtils;
 import com.ch.utils.JSONUtils;
+import com.google.common.collect.Lists;
 import org.redisson.api.RBucket;
 import org.redisson.api.RList;
+import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.redisson.codec.JsonJacksonCodec;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -35,10 +37,7 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -69,7 +68,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             //跳过不需要验证的路径
             return chain.filter(exchange);
         }
-        Collection<PermissionDto> whiteList = getPermissions(CacheType.PERMISSIONS_WHITE_LIST, null);
+        Collection<PermissionDto> whiteList = getPermissions2(CacheType.PERMISSIONS_WHITE_LIST, null);
         if (!whiteList.isEmpty()) { // 白名单接口地址
             boolean ok = checkPermissions(whiteList, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (ok) {
@@ -121,7 +120,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             }
 
             //redis cache replace sso client findHiddenPermissions
-            Collection<PermissionDto> hiddenPermissions = getPermissions(CacheType.PERMISSIONS_LOGIN_LIST, null);
+            Collection<PermissionDto> hiddenPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
 
             if (!hiddenPermissions.isEmpty()) {
                 boolean ok = checkPermissions(hiddenPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
@@ -132,7 +131,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             }
 
             //redis cache replace sso client findPermissionsByRoleId
-            Collection<PermissionDto> authPermissions = getPermissions(CacheType.PERMISSIONS_AUTH_LIST, userBucket.get().getRoleId());
+            Collection<PermissionDto> authPermissions = getPermissions2(CacheType.PERMISSIONS_AUTH_LIST, userBucket.get().getRoleId());
 
             boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (!ok) {
@@ -142,6 +141,39 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
             return toUser(exchange, chain, userBucket.get().getUsername());
         }
 //        return null;
+    }
+
+    private Collection<PermissionDto> getPermissions2(CacheType cacheType, Long roleId) {
+        RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
+        String key = roleId != null ? roleId.toString() : cacheType.getCode();
+        List<PermissionDto> permissions = permissionsMap.get(key);
+        if (permissions == null) {
+            if (cacheType == CacheType.PERMISSIONS_AUTH_LIST && roleId == null) {
+                return permissions;
+            }
+            Collection<PermissionDto> ps = getPermissions3(cacheType, roleId);
+            permissionsMap.fastPutIfAbsent(key, Lists.newArrayList(ps), 30, TimeUnit.NANOSECONDS);
+        }
+        return permissions;
+    }
+
+
+    private Collection<PermissionDto> getPermissions3(CacheType cacheType, Long roleId) {
+        Result<PermissionDto> res;
+        switch (cacheType) {
+            case PERMISSIONS_WHITE_LIST:
+                res = upmsClientService.findWhitelistPermissions();
+                break;
+            case PERMISSIONS_LOGIN_LIST:
+                res = upmsClientService.findHiddenPermissions();
+                break;
+            case PERMISSIONS_COOKIE_LIST:
+                res = upmsClientService.findCookiePermissions();
+                break;
+            default:
+                res = upmsClientService.findPermissionsByRoleId(roleId, null);
+        }
+        return res.getRows();
     }
 
     private Collection<PermissionDto> getPermissions(CacheType cacheType, Long roleId) {
@@ -184,7 +216,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     }
 
     private String getCookieToken(ServerHttpRequest request) {
-        Collection<PermissionDto> permissions = getPermissions(CacheType.PERMISSIONS_COOKIE_LIST, null);
+        Collection<PermissionDto> permissions = getPermissions2(CacheType.PERMISSIONS_COOKIE_LIST, null);
         boolean ok = checkPermissions(permissions, request.getURI().getPath(), request.getMethod());
         if (!ok) {
             return null;

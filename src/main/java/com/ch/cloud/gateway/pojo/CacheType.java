@@ -11,17 +11,20 @@ import com.ch.utils.StringUtilsV2;
  * @date 2020/10/2 14:47
  */
 public enum CacheType {
-    PERMISSIONS_WHITE_LIST("gateway:permission:whitelist"),
-    PERMISSIONS_LOGIN_LIST("gateway:permission:login"),
-    PERMISSIONS_COOKIE_LIST("gateway:permission:cookie"),
-    PERMISSIONS_AUTH_LIST("gateway:permission:auth"),
-    GATEWAY_TOKEN("gateway:token"),
-    GATEWAY_USER("gateway:user");
+    PERMISSIONS_MAP("gateway:permissions","permissions"),
+    PERMISSIONS_WHITE_LIST("gateway:permission:whitelist","whitelist"),
+    PERMISSIONS_LOGIN_LIST("gateway:permission:login","login"),
+    PERMISSIONS_COOKIE_LIST("gateway:permission:cookie","cookie"),
+    PERMISSIONS_AUTH_LIST("gateway:permission:auth",""),
+    GATEWAY_TOKEN("gateway:token", "token"),
+    GATEWAY_USER("gateway:user","user");
 
     private final String key;
+    private final String code;
 
-    CacheType(String key) {
+    CacheType(String key,String code) {
         this.key = key;
+        this.code = code;
     }
 
     public String getKey(String... args) {
@@ -29,5 +32,9 @@ public enum CacheType {
             return key;
         }
         return key + Separator.SECURITY + StringUtilsV2.linkStr(Separator.SECURITY, args);
+    }
+
+    public String getCode() {
+        return code;
     }
 }
