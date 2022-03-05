@@ -149,10 +149,11 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         List<PermissionDto> permissions = permissionsMap.get(key);
         if (permissions == null) {
             if (cacheType == CacheType.PERMISSIONS_AUTH_LIST && roleId == null) {
-                return permissions;
+                return Lists.newArrayList();
             }
-            Collection<PermissionDto> ps = getPermissions3(cacheType, roleId);
-            permissionsMap.fastPutIfAbsent(key, Lists.newArrayList(ps), 30, TimeUnit.NANOSECONDS);
+            Collection<PermissionDto> list = getPermissions3(cacheType, roleId);
+            permissionsMap.fastPutIfAbsent(key, Lists.newArrayList(list), 30, TimeUnit.NANOSECONDS);
+            return list;
         }
         return permissions;
     }
