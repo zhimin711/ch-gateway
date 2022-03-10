@@ -14,6 +14,7 @@ import com.ch.utils.CommonUtils;
 import com.ch.utils.EncryptUtils;
 import com.ch.utils.JSONUtils;
 import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.api.RList;
 import org.redisson.api.RMapCache;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
  * @since 2020-1-1
  */
 @Configuration
+@Slf4j
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
     private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**"};
@@ -118,7 +120,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 tokenBucket.set(md5);
                 userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
             }
-
+            log.info("request user: {}", userBucket.get());
             //redis cache replace sso client findHiddenPermissions
             Collection<PermissionDto> hiddenPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
 
