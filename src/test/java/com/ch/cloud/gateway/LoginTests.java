@@ -37,6 +37,7 @@ public class LoginTests {
         System.out.println(pathMatcher.match("/upms/department/{id:[0-9]+}/positions/{name}", "/upms/department/1/positions/b"));
         System.out.println(pathMatcher.match("/{svcName}/v2/api-docs", "/upms/v2/api-docs"));
         System.out.println(pathMatcher.match("/upms/department/{id:[0-9]+}/tenants/*", "/upms/department/4/tenants/"));
+        System.out.println(pathMatcher.match("/wiki/upload/{dir:(ue|images|article)}/**", "/wiki/upload/article/a/1.jpg"));
     }
 
     @Test

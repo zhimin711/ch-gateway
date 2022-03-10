@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
-    private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**"};
+    private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**", "/*/static/**"};
     private final String[] authUrls = {"/auth/user/**"};
 
     @Resource
