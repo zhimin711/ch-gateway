@@ -7,7 +7,6 @@ import com.ch.cloud.gateway.cli.SsoClientService;
 import com.ch.cloud.gateway.cli.UpmsClientService;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.pojo.UserInfo;
-import com.ch.cloud.gateway.utils.PathConstants;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
@@ -111,7 +110,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 UserInfo user = res1.get();
                 user.setUserId(res2.get().getUserId());
                 user.setRoleId(res2.get().getRoleId());
-//                user.setRoleId(res2.get().getRoleId());
+                user.setTenantId(res2.get().getTenantId());
 
                 RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(res1.get().getUsername()));
                 if (tokenBucket.isExists()) {
@@ -128,7 +127,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 boolean ok = checkPermissions(hiddenPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {
                     //将现在的request，添加当前身份
-                    return toUser(exchange, chain, userBucket.get().getUsername());
+                    return toUser(exchange, chain, userBucket.get());
                 }
             }
 
@@ -140,7 +139,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 return authError(resp, Result.error(PubError.NOT_AUTH, url + " not authority!"));
             }
             //将现在的request，添加当前身份
-            return toUser(exchange, chain, userBucket.get().getUsername());
+            return toUser(exchange, chain, userBucket.get());
         }
 //        return null;
     }
@@ -230,8 +229,11 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         return cookie.getValue();
     }
 
-    private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, String username) {
-        ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.X_TOKEN_USER, username).build();
+    private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, UserInfo user) {
+        ServerHttpRequest mutableReq = exchange.getRequest().mutate()
+                .header(Constants.X_TOKEN_USER, user.getUsername())
+                .header(Constants.X_TOKEN_TENANT, user.getTenantId() == null ? "" : user.getTenantId().toString())
+                .build();
         ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
         return chain.filter(mutableExchange);
     }
