@@ -119,7 +119,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 tokenBucket.set(md5);
                 userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
             }
-            log.info("request user: {}", userBucket.get());
+            UserInfo user = userBucket.get();
+            log.info("request user: {}", user);
             //redis cache replace sso client findHiddenPermissions
             Collection<PermissionDto> hiddenPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
 
@@ -127,19 +128,19 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 boolean ok = checkPermissions(hiddenPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {
                     //将现在的request，添加当前身份
-                    return toUser(exchange, chain, userBucket.get());
+                    return toUser(exchange, chain, user);
                 }
             }
 
             //redis cache replace sso client findPermissionsByRoleId
-            Collection<PermissionDto> authPermissions = getPermissions2(CacheType.PERMISSIONS_AUTH_LIST, userBucket.get().getRoleId());
+            Collection<PermissionDto> authPermissions = getPermissions2(CacheType.PERMISSIONS_AUTH_LIST, user.getRoleId());
 
             boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
             if (!ok) {
                 return authError(resp, Result.error(PubError.NOT_AUTH, url + " not authority!"));
             }
             //将现在的request，添加当前身份
-            return toUser(exchange, chain, userBucket.get());
+            return toUser(exchange, chain, user);
         }
 //        return null;
     }
@@ -230,6 +231,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, UserInfo user) {
+
         ServerHttpRequest mutableReq = exchange.getRequest().mutate()
                 .header(Constants.X_TOKEN_USER, user.getUsername())
                 .header(Constants.X_TOKEN_TENANT, user.getTenantId() == null ? "" : user.getTenantId().toString())
