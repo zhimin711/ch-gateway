@@ -40,6 +40,9 @@ public class GatewayConfig {
         if (request == null) return "N/A";
         String ip = request.getHeaders().getFirst("x-forwarded-for");
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeaders().getFirst("x-Original-Forwarded-For");
+        }
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeaders().getFirst("Proxy-Client-IP");
         }
         if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
