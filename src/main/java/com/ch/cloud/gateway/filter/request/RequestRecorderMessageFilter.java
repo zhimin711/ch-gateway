@@ -1,6 +1,7 @@
 package com.ch.cloud.gateway.filter.request;
 
 
+import cn.hutool.core.util.StrUtil;
 import com.ch.Constants;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpRequestDecorator;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
@@ -62,7 +63,8 @@ public class RequestRecorderMessageFilter extends AbsRequestRecorderFilter {
                     }
 //                    rocketMQTemplate.convertAndSend("request-logs", logStr);
                     if (mqOn)
-                        rocketMQTemplate.asyncSend(topic, logStr, new SendCallback() {
+
+                        rocketMQTemplate.asyncSend(topic, StrUtil.sub(logStr, 0, 1000), new SendCallback() {
                             @Override
                             public void onSuccess(SendResult sendResult) {
                                 log.info("{} => {}", ex.getRequest().getURI(), sendResult.getMsgId());
