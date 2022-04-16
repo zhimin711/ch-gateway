@@ -120,12 +120,12 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
             }
             UserInfo user = userBucket.get();
-            log.info("request user: {}", user);
+//            log.info("request user: {}", user);
             //redis cache replace sso client findHiddenPermissions
-            Collection<PermissionDto> hiddenPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
+            Collection<PermissionDto> loginPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
 
-            if (!hiddenPermissions.isEmpty()) {
-                boolean ok = checkPermissions(hiddenPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+            if (!loginPermissions.isEmpty()) {
+                boolean ok = checkPermissions(loginPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
                 if (ok) {
                     //将现在的request，添加当前身份
                     return toUser(exchange, chain, user);

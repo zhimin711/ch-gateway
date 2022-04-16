@@ -1,5 +1,6 @@
 package com.ch.cloud.gateway.utils;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.ch.Constants;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
@@ -52,7 +53,7 @@ public class GatewayLogUtil {
         return DataBufferFixUtil.join(body)
                 .doOnNext(wrapper -> {
                     logBuffer.append("\"data\":");
-                    logBuffer.append(new String(wrapper.getData(), charset));
+                    logBuffer.append(StrUtil.sub(new String(wrapper.getData(), charset), 0, 1000));
                     logBuffer.append("}}");
                     wrapper.clear();
                 }).then();
