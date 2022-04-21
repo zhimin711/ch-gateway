@@ -1,6 +1,5 @@
 package com.ch.cloud.gateway.utils;
 
-import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.ch.Constants;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
@@ -49,14 +48,30 @@ public class GatewayLogUtil {
         //form没有记录
     }
 
-    private static Mono<Void> doRecordBody(StringBuffer logBuffer, Flux<DataBuffer> body, Charset charset) {
+    private static Mono<Void> doRecordBody(StringBuffer logBuffer, Flux<DataBuffer> body, Charset charset, boolean isResponse) {
         return DataBufferFixUtil.join(body)
                 .doOnNext(wrapper -> {
                     logBuffer.append("\"data\":");
-                    logBuffer.append(StrUtil.sub(new String(wrapper.getData(), charset), 0, 1000));
+                    String data = new String(wrapper.getData(), charset);
+                    if(isResponse){
+                        data = subData(data);
+                    }
+                    logBuffer.append(data);
                     logBuffer.append("}}");
                     wrapper.clear();
                 }).then();
+    }
+
+    private static String subData(String data) {
+        try {
+            JSONObject obj = JSONObject.parseObject(data);
+            //                JSONArray rowsArr = obj.getJSONArray("rows");
+            //                obj.put("rowsStr", StrUtil.sub(rowsArr.toString(),0,1000));
+            obj.remove("rows");
+            return obj.toJSONString();
+        } catch (Exception ignored) {
+        }
+        return data;
     }
 
     private static Charset getMediaTypeCharset(@Nullable MediaType mediaType) {
@@ -123,7 +138,7 @@ public class GatewayLogUtil {
         }
 
         if (bodyCharset != null) {
-            return doRecordBody(logBuffer, request.getBody(), bodyCharset);
+            return doRecordBody(logBuffer, request.getBody(), bodyCharset,false);
         } else {
             logBuffer.append("}}");
             return Mono.empty();
@@ -174,7 +189,7 @@ public class GatewayLogUtil {
 //        boolean isDecorator = exchange.getResponse() instanceof RecorderServerHttpResponseDecorator;
         if (bodyCharset != null) {
             logBuffer.append(",");
-            return doRecordBody(logBuffer, ((RecorderServerHttpResponseDecorator) response).copy(), bodyCharset);
+            return doRecordBody(logBuffer, ((RecorderServerHttpResponseDecorator) response).copy(), bodyCharset,true);
         } else {
             logBuffer.append("}}");
             return Mono.empty();

@@ -4,6 +4,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -15,6 +16,7 @@ public class DataBufferFixUtil {
         return dataBuffers.collectList()
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.get(0).factory().join(list))
+                .publishOn(Schedulers.boundedElastic())
                 .map(buf -> {
                     InputStream source = buf.asInputStream();
                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
