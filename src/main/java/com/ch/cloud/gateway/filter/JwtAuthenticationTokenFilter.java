@@ -2,11 +2,12 @@ package com.ch.cloud.gateway.filter;
 
 import com.ch.Constants;
 import com.ch.StatusS;
-import com.ch.cloud.client.dto.PermissionDto;
 import com.ch.cloud.gateway.cli.SsoClientService;
-import com.ch.cloud.gateway.cli.UpmsClientService;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.pojo.UserInfo;
+import com.ch.cloud.upms.client.UpmsPermissionClientService;
+import com.ch.cloud.upms.client.UpmsRoleClientService;
+import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
@@ -37,7 +38,10 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -55,9 +59,11 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private final String[] authUrls = {"/auth/user/**"};
 
     @Resource
-    private SsoClientService ssoClientService;
+    private SsoClientService            ssoClientService;
     @Resource
-    private UpmsClientService upmsClientService;
+    private UpmsPermissionClientService upmsPermissionClientService;
+    @Resource
+    private UpmsRoleClientService       upmsRoleClientService;
 
     @Resource
     private RedissonClient redissonClient;
@@ -165,57 +171,18 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         Result<PermissionDto> res;
         switch (cacheType) {
             case PERMISSIONS_WHITE_LIST:
-                res = upmsClientService.findWhitelistPermissions();
+                res = upmsPermissionClientService.whitelist();
                 break;
             case PERMISSIONS_LOGIN_LIST:
-                res = upmsClientService.findHiddenPermissions();
+                res = upmsPermissionClientService.hidden();
                 break;
             case PERMISSIONS_COOKIE_LIST:
-                res = upmsClientService.findCookiePermissions();
+                res = upmsPermissionClientService.cookie();
                 break;
             default:
-                res = upmsClientService.findPermissionsByRoleId(roleId, null);
+                res = upmsRoleClientService.findPermissionsByRoleId(roleId, null);
         }
         return res.getRows();
-    }
-
-    private Collection<PermissionDto> getPermissions(CacheType cacheType, Long roleId) {
-
-        RList<PermissionDto> permissions = redissonClient.getList(roleId == null ? cacheType.getKey() : cacheType.getKey(roleId.toString()), JsonJacksonCodec.INSTANCE);
-        if (permissions.isEmpty()) {
-            if (cacheType == CacheType.PERMISSIONS_AUTH_LIST && roleId == null) {
-                return permissions;
-            }
-            if (cachePermissions(cacheType, roleId, permissions)) return permissions;
-        }
-        return permissions;
-    }
-
-    private synchronized boolean cachePermissions(CacheType cacheType, Long roleId, RList<PermissionDto> permissions) {
-        Result<PermissionDto> res;
-        switch (cacheType) {
-            case PERMISSIONS_WHITE_LIST:
-                res = upmsClientService.findWhitelistPermissions();
-                break;
-            case PERMISSIONS_LOGIN_LIST:
-                res = upmsClientService.findHiddenPermissions();
-                break;
-            case PERMISSIONS_COOKIE_LIST:
-                res = upmsClientService.findCookiePermissions();
-                break;
-            default:
-                res = upmsClientService.findPermissionsByRoleId(roleId, null);
-        }
-        if (!permissions.isEmpty()) {
-            return true;
-        }
-        if (!res.isEmpty()) {
-            permissions.addAll(res.getRows());
-        } else {
-            permissions.addAll(Collections.emptyList());
-        }
-        permissions.expire(30, TimeUnit.MINUTES);
-        return false;
     }
 
     private String getCookieToken(ServerHttpRequest request) {

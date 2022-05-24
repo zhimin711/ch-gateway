@@ -21,8 +21,8 @@ spring:
     ### 连接超时时间（毫秒）
     timeout: 60000
     ### Redis数据库索引(默认为0)
-    host: 192.168.0.250
-    port: 30379
+    host: 192.168.0.202
+    port: 6379
     password: admin123
     database: 0
 #    sentinel:
@@ -38,7 +38,7 @@ spring:
   #API网关配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.0.250:30307/ch_gateway
+    url: jdbc:mysql://192.168.0.250:3306/ch_gateway
     username: admin
     password: 123456
     type: com.zaxxer.hikari.HikariDataSource
@@ -93,14 +93,15 @@ hystrix:
 
 logging:
 #  config: classpath:config/logback-test.xml
-  path: logs/ch-gateway
   level:
     com.ch: debug
     org.springframework.cloud: info
     com.alibaba.nacos: warn
+  file:
+    path: logs/ch-gateway
 rocketmq:
   enabled: false
-  name-server: 192.168.0.250:30876 # 自己的RocketMQ服务地址
+  name-server: 192.168.0.206:9876 # 自己的RocketMQ服务地址
   producer:
     send-message-timeout: 300000
     group: ch-gateway
