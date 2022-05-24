@@ -1,9 +1,9 @@
 package com.ch.cloud.gateway.controller;
 
 import com.ch.Constants;
-import com.ch.cloud.client.dto.PermissionDto;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.pojo.UserInfo;
+import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.result.Result;
 import com.ch.utils.EncryptUtils;
 import org.redisson.api.RBucket;
