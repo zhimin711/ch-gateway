@@ -5,6 +5,7 @@ import com.ch.StatusS;
 import com.ch.cloud.gateway.cli.SsoClientService;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.pojo.UserInfo;
+import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.upms.client.UpmsPermissionClientService;
 import com.ch.cloud.upms.client.UpmsRoleClientService;
 import com.ch.cloud.upms.dto.PermissionDto;
@@ -20,6 +21,7 @@ import org.redisson.api.RList;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.redisson.codec.JsonJacksonCodec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +44,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -58,12 +62,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**", "/*/static/**"};
     private final String[] authUrls = {"/auth/user/**"};
 
-    @Resource
-    private SsoClientService            ssoClientService;
-    @Resource
-    private UpmsPermissionClientService upmsPermissionClientService;
-    @Resource
-    private UpmsRoleClientService       upmsRoleClientService;
+    @Autowired
+    private FeignClientHolder feignClientHolder;
 
     @Resource
     private RedissonClient redissonClient;
@@ -101,31 +101,15 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         } else {
             //有token
             //redis cache replace sso client
-            String md5 = EncryptUtils.md5(token);
-            RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
-            if (!userBucket.isExists()) {
-                Result<UserInfo> res1 = ssoClientService.tokenInfo(token);
-                Result<UserInfo> res2 = ssoClientService.userInfo(token);
-                if (res1.isEmpty() || res2.isEmpty()) {
-                    PubError err = PubError.fromCode(res1.getCode());
-                    if (err == PubError.EXPIRED) {
-                        refreshToken(resp, StatusS.ENABLED);
-                    }
-                    return authError(resp, Result.error(err, res1.getMessage()));
+            Result<UserInfo> userResult = getUserInfo(token);
+            if (!userResult.isSuccess()) {
+                PubError err = PubError.fromCode(userResult.getCode());
+                if (err == PubError.EXPIRED) {
+                    refreshToken(resp, StatusS.ENABLED);
                 }
-                UserInfo user = res1.get();
-                user.setUserId(res2.get().getUserId());
-                user.setRoleId(res2.get().getRoleId());
-                user.setTenantId(res2.get().getTenantId());
-
-                RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(res1.get().getUsername()));
-                if (tokenBucket.isExists()) {
-                    redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
-                }
-                tokenBucket.set(md5);
-                userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
+                return authError(resp, Result.error(err, userResult.getMessage()));
             }
-            UserInfo user = userBucket.get();
+            UserInfo user = userResult.get();
 //            log.info("request user: {}", user);
             //redis cache replace sso client findHiddenPermissions
             Collection<PermissionDto> loginPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
@@ -151,6 +135,33 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 //        return null;
     }
 
+    private Result<UserInfo> getUserInfo(String token) {
+        String md5 = EncryptUtils.md5(token);
+        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
+        Result<UserInfo> res1 = Result.failed();
+        if (!userBucket.isExists()) {
+            try {
+                Future<Result<UserInfo>> f = feignClientHolder.tokenInfo(token);
+                res1 = f.get();
+            } catch (InterruptedException | ExecutionException e) {
+                log.error("[单点登录系统]调用登录鉴权Feign失败", e);
+            }
+            if (!res1.isSuccess()) {
+                return res1;
+            }
+            UserInfo user = res1.get();
+            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(res1.get().getUsername()));
+            if (tokenBucket.isExists()) {
+                redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
+            }
+            tokenBucket.set(md5);
+            userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
+        } else {
+            return Result.success(userBucket.get());
+        }
+        return res1;
+    }
+
     private Collection<PermissionDto> getPermissions2(CacheType cacheType, Long roleId) {
         RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
         String key = roleId != null ? roleId.toString() : cacheType.getCode();
@@ -160,7 +171,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 return Lists.newArrayList();
             }
             Collection<PermissionDto> list = getPermissions3(cacheType, roleId);
-            permissionsMap.fastPutIfAbsent(key, Lists.newArrayList(list), 30, TimeUnit.NANOSECONDS);
+            permissionsMap.fastPutIfAbsent(key, Lists.newArrayList(list), 30, TimeUnit.MINUTES);
             return list;
         }
         return permissions;
@@ -168,19 +179,23 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 
 
     private Collection<PermissionDto> getPermissions3(CacheType cacheType, Long roleId) {
-        Result<PermissionDto> res;
-        switch (cacheType) {
-            case PERMISSIONS_WHITE_LIST:
-                res = upmsPermissionClientService.whitelist();
-                break;
-            case PERMISSIONS_LOGIN_LIST:
-                res = upmsPermissionClientService.hidden();
-                break;
-            case PERMISSIONS_COOKIE_LIST:
-                res = upmsPermissionClientService.cookie();
-                break;
-            default:
-                res = upmsRoleClientService.findPermissionsByRoleId(roleId, null);
+        Result<PermissionDto> res = Result.success();
+        try {
+            switch (cacheType) {
+                case PERMISSIONS_WHITE_LIST:
+                    res = feignClientHolder.whitelistPermissions().get();
+                    break;
+                case PERMISSIONS_LOGIN_LIST:
+                    res = feignClientHolder.hiddenPermissions().get();
+                    break;
+                case PERMISSIONS_COOKIE_LIST:
+                    res = feignClientHolder.cookiePermissions().get();
+                    break;
+                default:
+                    res = feignClientHolder.rolePermissions(roleId).get();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("[用户权限]调用用户权限中心Feign失败", e);
         }
         return res.getRows();
     }
