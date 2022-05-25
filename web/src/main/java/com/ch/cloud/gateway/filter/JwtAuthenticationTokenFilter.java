@@ -138,19 +138,19 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private Result<UserInfo> getUserInfo(String token) {
         String md5 = EncryptUtils.md5(token);
         RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
-        Result<UserInfo> res1 = Result.failed();
+        Result<UserInfo> infoResult = Result.failed();
         if (!userBucket.isExists()) {
             try {
                 Future<Result<UserInfo>> f = feignClientHolder.tokenInfo(token);
-                res1 = f.get();
+                infoResult = f.get();
             } catch (InterruptedException | ExecutionException e) {
                 log.error("[单点登录系统]调用登录鉴权Feign失败", e);
             }
-            if (!res1.isSuccess()) {
-                return res1;
+            if (!infoResult.isSuccess()) {
+                return infoResult;
             }
-            UserInfo user = res1.get();
-            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(res1.get().getUsername()));
+            UserInfo user = infoResult.get();
+            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(infoResult.get().getUsername()));
             if (tokenBucket.isExists()) {
                 redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
             }
@@ -159,7 +159,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         } else {
             return Result.success(userBucket.get());
         }
-        return res1;
+        return infoResult;
     }
 
     private Collection<PermissionDto> getPermissions2(CacheType cacheType, Long roleId) {

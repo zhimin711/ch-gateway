@@ -47,6 +47,11 @@ public class NotifyCleanReceiver implements RocketMQListener<KeyValue> {
         }
     }
 
+    /**
+     * 将已失效的token用户清除
+     *
+     * @param keyValue 用户token
+     */
     private void cleanUsers(KeyValue keyValue) {
         String md5 = EncryptUtils.md5(keyValue.getValue());
         RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
@@ -55,6 +60,11 @@ public class NotifyCleanReceiver implements RocketMQListener<KeyValue> {
         }
     }
 
+    /**
+     * 将刷新角色对应的权限
+     *
+     * @param keyValue 权限（角色）
+     */
     private void cleanPermissions(KeyValue keyValue) {
         RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
         if (permissionsMap.containsKey(keyValue.getValue())) {
