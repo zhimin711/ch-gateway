@@ -8,7 +8,7 @@ import com.ch.utils.StringUtilsV2;
  * desc:
  *
  * @author zhimi
- * @date 2020/10/2 14:47
+ * @since2020/10/2 14:47
  */
 public enum CacheType {
     PERMISSIONS_MAP("gateway:permissions","permissions"),

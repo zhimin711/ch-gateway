@@ -192,7 +192,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.ch.cloud.App</mainClass>
+                            <mainClass>com.ch.cloud.gateway.App</mainClass>
                         </manifest>
                     </archive>
                     <excludes>

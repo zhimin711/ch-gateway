@@ -17,7 +17,7 @@ import springfox.documentation.oas.annotations.EnableOpenApi;
  * desc:
  *
  * @author zhimin
- * @date 2019/4/14 3:22 PM
+ * @since2019/4/14 3:22 PM
  */
 @SpringBootApplication(exclude = DataSourceAutoConfiguration.class)
 @EnableFeignClients("com.ch.cloud")
@@ -26,7 +26,7 @@ import springfox.documentation.oas.annotations.EnableOpenApi;
 //@EnableHystrix
 @EnableOpenApi
 @EnableAsync
-public class GatewayApplication {
+public class App {
 
     /**
      * 解决前后端分离跨域问题
@@ -46,6 +46,6 @@ public class GatewayApplication {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(GatewayApplication.class, args);
+        SpringApplication.run(App.class, args);
     }
 }
