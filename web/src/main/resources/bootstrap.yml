@@ -12,6 +12,7 @@ spring:
         server-addr: ${nacos.config.server-addr}
         namespace: ${nacos.config.namespace:}
       config:
+#        enabled: false
         group: ${spring.application.name}
         server-addr: ${nacos.config.server-addr}
         namespace: ${nacos.config.namespace:}
@@ -19,8 +20,7 @@ spring:
           -
             dataId: ch-gateway.yml
             refresh: true
-#            group: ${spring.application.name}
-#        enabled: false
+            group: ${spring.application.name}
 #    sentinel:
 #      transport:
 #        dashboard: 192.168.199.194:8800
