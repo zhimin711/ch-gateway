@@ -46,7 +46,7 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
     private String serverAddr;
     @Value("${nacos.config.namespace:}")
     private String namespace;
-    @Value("${nacos.config.group:DEFAULT_GROUP}")
+    @Value("${spring.cloud.nacos.config.group:DEFAULT_GROUP}")
     private String group;
 
     private Set<String> routerIds;
