@@ -215,6 +215,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, UserInfo user) {
 
         ServerHttpRequest mutableReq = exchange.getRequest().mutate()
+                .header(Constants.CURRENT_USER, user.getUserId() == null ? "" : user.getUserId().toString())
                 .header(Constants.X_TOKEN_USER, user.getUsername())
                 .header(Constants.X_TOKEN_TENANT, user.getTenantId() == null ? "" : user.getTenantId().toString())
                 .build();
