@@ -53,8 +53,6 @@ public class RequestRecorderMessageFilter extends AbsRequestRecorderFilter {
                 .doOnSuccess(x -> {
                     long endTimeMillis = System.currentTimeMillis();
                     String logStr = GatewayLogUtil.getLogData(ex, startTimeMillis, endTimeMillis);
-//                    log.info("request cost time: {}\n{}", endTimeMillis - startTimeMillis, logStr);
-
                     List<String> uList = ex.getRequest().getHeaders().getOrEmpty(Constants.X_TOKEN_USER);
                     String topic = MQ_TOPIC;
                     if (!uList.isEmpty()) {

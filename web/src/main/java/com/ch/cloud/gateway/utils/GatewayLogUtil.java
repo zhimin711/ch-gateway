@@ -28,8 +28,12 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.G
 
 @Log4j2
 public class GatewayLogUtil {
-    private final static String REQUEST_RECORDER_LOG_BUFFER = "RequestRecorderGlobalFilter.request_recorder_log_buffer";
-    private final static String REQUEST_PROCESS_SEPARATOR = "\n[REQUEST_PROCESS_SEPARATOR]\n";
+
+    private GatewayLogUtil() {
+    }
+
+    private static final String REQUEST_RECORDER_LOG_BUFFER = "RequestRecorderGlobalFilter.request_recorder_log_buffer";
+    private static final String REQUEST_PROCESS_SEPARATOR = "\n[REQUEST_PROCESS_SEPARATOR]\n";
 
     private static boolean hasBody(HttpMethod method) {
         //只记录这3种谓词的body
@@ -53,7 +57,7 @@ public class GatewayLogUtil {
                 .doOnNext(wrapper -> {
                     logBuffer.append("\"data\":");
                     String data = new String(wrapper.getData(), charset);
-                    if(isResponse){
+                    if (isResponse) {
                         data = subData(data);
                     }
                     logBuffer.append(data);
@@ -99,6 +103,7 @@ public class GatewayLogUtil {
         } else {
             logBuffer.append(REQUEST_PROCESS_SEPARATOR);
         }
+
         logBuffer.append("{\"").append("proxy").append("\":");
         return recorderRequest(exchange.getRequest(), requestUrl, logBuffer);
     }
@@ -138,7 +143,7 @@ public class GatewayLogUtil {
         }
 
         if (bodyCharset != null) {
-            return doRecordBody(logBuffer, request.getBody(), bodyCharset,false);
+            return doRecordBody(logBuffer, request.getBody(), bodyCharset, false);
         } else {
             logBuffer.append("}}");
             return Mono.empty();
@@ -151,7 +156,7 @@ public class GatewayLogUtil {
         AtomicInteger i = new AtomicInteger();
         headers.forEach((name, values) -> {
             if (values.size() == 1) {
-                appendKeyValueEnd(logBuffer, name, values.get(0).replaceAll("\"","'"));
+                appendKeyValueEnd(logBuffer, name, values.get(0).replaceAll("\"", "'"));
             } else {
                 logBuffer.append("\"").append(name).append("\":").append(JSONObject.toJSONString(values));
             }
@@ -189,7 +194,7 @@ public class GatewayLogUtil {
 //        boolean isDecorator = exchange.getResponse() instanceof RecorderServerHttpResponseDecorator;
         if (bodyCharset != null) {
             logBuffer.append(",");
-            return doRecordBody(logBuffer, ((RecorderServerHttpResponseDecorator) response).copy(), bodyCharset,true);
+            return doRecordBody(logBuffer, ((RecorderServerHttpResponseDecorator) response).copy(), bodyCharset, true);
         } else {
             logBuffer.append("}}");
             return Mono.empty();

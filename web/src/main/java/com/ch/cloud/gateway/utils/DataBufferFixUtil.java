@@ -12,6 +12,9 @@ import java.io.InputStream;
 
 public class DataBufferFixUtil {
 
+    private DataBufferFixUtil() {
+    }
+
     public static Mono<DataBufferWrapper> join(Flux<DataBuffer> dataBuffers) {
         return dataBuffers.collectList()
                 .filter(list -> !list.isEmpty())
