@@ -1,5 +1,7 @@
 package com.ch.cloud.gateway.filter;
 
+import com.alibaba.fastjson.parser.JSONLexer;
+import com.alibaba.fastjson2.JSON;
 import com.ch.Constants;
 import com.ch.StatusS;
 import com.ch.cloud.gateway.cli.SsoClientService;
@@ -283,7 +285,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         resp.setStatusCode(HttpStatus.UNAUTHORIZED);
         resp.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
 //        Result<Object> res = Result.error(PubError.NOT_AUTH, mess);
-        String returnStr = JSONUtils.toJson(result);
+        String returnStr = JSON.toJSONString(result);
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
         return resp.writeWith(Flux.just(buffer));
     }
