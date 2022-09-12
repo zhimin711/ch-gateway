@@ -1,6 +1,6 @@
 package com.ch.cloud.gateway.utils;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.ch.Constants;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
 import com.ch.utils.CommonUtils;
