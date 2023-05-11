@@ -1,6 +1,6 @@
 package com.ch.cloud.gateway.service;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.nacos.api.NacosFactory;
 import com.alibaba.nacos.api.PropertyKeyConst;
 import com.alibaba.nacos.api.config.ConfigService;
@@ -65,7 +65,7 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
                 public void receiveConfigInfo(String configInfo) {
                     clearRoute();
                     try {
-                        List<RouteDefinition> gatewayRouteDefinitions = JSONObject.parseArray(configInfo, RouteDefinition.class);
+                        List<RouteDefinition> gatewayRouteDefinitions = JSON.parseArray(configInfo, RouteDefinition.class);
                         for (RouteDefinition routeDefinition : gatewayRouteDefinitions) {
                             addRoute(routeDefinition);
                         }
