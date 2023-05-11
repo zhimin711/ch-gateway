@@ -96,7 +96,7 @@ public class GatewayLogUtil {
     }
 
     public static Mono<Void> recorderRouteRequest(ServerWebExchange exchange) {
-        URI requestUrl = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
+        URI uri = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
         StringBuffer logBuffer = exchange.getAttribute(REQUEST_RECORDER_LOG_BUFFER);
         if (logBuffer == null) {
             logBuffer = new StringBuffer();
@@ -104,8 +104,12 @@ public class GatewayLogUtil {
             logBuffer.append(REQUEST_PROCESS_SEPARATOR);
         }
 
-        logBuffer.append("{\"").append("proxy").append("\":");
-        return recorderRequest(exchange.getRequest(), requestUrl, logBuffer);
+        logBuffer.append("{\"").append("proxy").append("\":{");
+        appendKeyValueEnd(logBuffer, "url", uri.toString());
+        logBuffer.append("}}");
+        return Mono.empty();
+        
+//        return recorderRequest(exchange.getRequest(), uri, logBuffer);
     }
 
     private static void appendKeyValue(StringBuffer logBuffer, String key, String value) {
