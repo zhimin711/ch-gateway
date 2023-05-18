@@ -25,7 +25,10 @@
         <java_target_version>1.8</java_target_version>
         <file_encoding>UTF-8</file_encoding>
         <flatten-maven-plugin.version>1.1.0</flatten-maven-plugin.version>
+        
         <ch.cloud.version>2.0.0-SNAPSHOT</ch.cloud.version>
+        <ch.sso.version>1.0.0-SNAPSHOT</ch.sso.version>
+        <ch.upms.version>1.0.0-SNAPSHOT</ch.upms.version>
     </properties>
 
     <dependencies>
@@ -52,6 +55,16 @@
                 <version>2021.0.1.0</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.ch.cloud</groupId>
+                <artifactId>ch-sso-client</artifactId>
+                <version>${ch.sso.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.ch.cloud</groupId>
+                <artifactId>ch-upms-client</artifactId>
+                <version>${ch.upms.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

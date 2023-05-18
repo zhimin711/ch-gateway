@@ -1,7 +1,8 @@
 package com.ch.cloud.gateway.service;
 
-import com.ch.cloud.gateway.cli.SsoClientService;
-import com.ch.cloud.gateway.pojo.UserInfo;
+import com.ch.cloud.sso.client.SsoLoginClient;
+import com.ch.cloud.sso.client.SsoUserClient;
+import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.client.UpmsPermissionClientService;
 import com.ch.cloud.upms.client.UpmsRoleClientService;
 import com.ch.cloud.upms.dto.PermissionDto;
@@ -13,7 +14,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.concurrent.Future;
 
 /**
@@ -26,9 +26,12 @@ import java.util.concurrent.Future;
 @Component
 public class FeignClientHolder {
 
-    @Lazy // 重点：这里必须使用@Lazy
+    @Lazy // 重点：这里必须使用@Lazy(异步线程)
     @Autowired
-    private SsoClientService ssoClientService;
+    private SsoLoginClient ssoLoginClient;
+    @Lazy // 重点：这里必须使用@Lazy(异步线程)
+    @Autowired
+    private SsoUserClient ssoUserClient;
     @Lazy
     @Autowired
     private UpmsPermissionClientService upmsPermissionClientService;
@@ -45,9 +48,9 @@ public class FeignClientHolder {
     @Async
     public Future<Result<UserInfo>> tokenInfo(String token) {
         log.info("开始获取 user info ...");
-        Result<UserInfo> r1 = ssoClientService.tokenInfo(token);
+        Result<UserInfo> r1 = ssoLoginClient.info(token);
         if (!r1.isEmpty()) {
-            Result<UserInfo> r2 = ssoClientService.userInfo(token);
+            Result<UserInfo> r2 = ssoUserClient.info(token);
             if (!r2.isEmpty()) {
                 r1.get().setUserId(r2.get().getUserId());
                 r1.get().setRoleId(r2.get().getRoleId());
@@ -60,7 +63,7 @@ public class FeignClientHolder {
     @Async
     public Future<UserInfo> userInfo(String token) {
         log.info("开始使用 userInfo ...");
-        Result<UserInfo> s = ssoClientService.userInfo(token);
+        Result<UserInfo> s = ssoUserClient.info(token);
         return new AsyncResult<>(s.get());
     }
 

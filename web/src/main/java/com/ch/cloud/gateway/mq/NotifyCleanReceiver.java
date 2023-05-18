@@ -1,7 +1,7 @@
 package com.ch.cloud.gateway.mq;
 
 import com.ch.cloud.gateway.pojo.CacheType;
-import com.ch.cloud.gateway.pojo.UserInfo;
+import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.pojo.KeyValue;
 import com.ch.utils.CommonUtils;
