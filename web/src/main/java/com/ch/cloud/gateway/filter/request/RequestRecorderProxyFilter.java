@@ -20,6 +20,7 @@ public class RequestRecorderProxyFilter extends AbsRequestRecorderFilter{
         //此时的request是 经过各种转换、转发之后的request
         //对应日志中的 代理请求 部分
         RecorderServerHttpRequestDecorator request = new RecorderServerHttpRequestDecorator(exchange.getRequest());
+        
         ServerWebExchange ex = exchange.mutate()
                 .request(request)
                 .build();

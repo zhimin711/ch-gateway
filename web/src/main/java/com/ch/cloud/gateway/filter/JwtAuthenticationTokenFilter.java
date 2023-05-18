@@ -53,16 +53,17 @@ import java.util.stream.Collectors;
 @Configuration
 @Slf4j
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
-
+    
     private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**", "/*/static/**"};
+    
     private final String[] authUrls = {"/auth/user/**"};
-
+    
     @Autowired
     private FeignClientHolder feignClientHolder;
-
+    
     @Resource
     private RedissonClient redissonClient;
-
+    
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String url = exchange.getRequest().getURI().getPath();
@@ -72,7 +73,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         Collection<PermissionDto> whiteList = getPermissions2(CacheType.PERMISSIONS_WHITE_LIST, null);
         if (!whiteList.isEmpty()) { // 白名单接口地址
-            boolean ok = checkPermissions(whiteList, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+            boolean ok = checkPermissions(whiteList, exchange.getRequest().getURI().getPath(),
+                    exchange.getRequest().getMethod());
             if (ok) {
                 //将现在的request，添加当前身份
                 return chain.filter(exchange);
@@ -108,19 +110,22 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
 //            log.info("request user: {}", user);
             //redis cache replace sso client findHiddenPermissions
             Collection<PermissionDto> loginPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
-
+            
             if (!loginPermissions.isEmpty()) {
-                boolean ok = checkPermissions(loginPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+                boolean ok = checkPermissions(loginPermissions, exchange.getRequest().getURI().getPath(),
+                        exchange.getRequest().getMethod());
                 if (ok) {
                     //将现在的request，添加当前身份
                     return toUser(exchange, chain, user);
                 }
             }
-
+            
             //redis cache replace sso client findPermissionsByRoleId
-            Collection<PermissionDto> authPermissions = getPermissions2(CacheType.PERMISSIONS_AUTH_LIST, user.getRoleId());
-
-            boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(), exchange.getRequest().getMethod());
+            Collection<PermissionDto> authPermissions = getPermissions2(CacheType.PERMISSIONS_AUTH_LIST,
+                    user.getRoleId());
+            
+            boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(),
+                    exchange.getRequest().getMethod());
             if (!ok) {
                 return authError(resp, Result.error(PubError.NOT_AUTH, url + " not authority!"));
             }
@@ -129,10 +134,11 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
 //        return null;
     }
-
+    
     private Result<UserInfo> getUserInfo(String token) {
         String md5 = EncryptUtils.md5(token);
-        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
+        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5),
+                JsonJacksonCodec.INSTANCE);
         Result<UserInfo> infoResult = Result.failed();
         if (!userBucket.isExists()) {
             try {
@@ -140,25 +146,35 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
                 infoResult = f.get();
             } catch (InterruptedException | ExecutionException e) {
                 log.error("[单点登录系统]调用登录鉴权Feign失败", e);
+                infoResult.setCode("100");
+                infoResult.setMessage("[单点登录]Feign调用登录鉴权失败");
             }
             if (!infoResult.isSuccess()) {
                 return infoResult;
             }
+            
             UserInfo user = infoResult.get();
-            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.getKey(infoResult.get().getUsername()));
+            RBucket<String> tokenBucket = redissonClient.getBucket(
+                    CacheType.GATEWAY_USER.getKey(infoResult.get().getUsername()));
             if (tokenBucket.isExists()) {
                 redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
             }
             tokenBucket.set(md5);
             userBucket.set(user, user.getExpireAt(), TimeUnit.MICROSECONDS);
         } else {
-            return Result.success(userBucket.get());
+            try {
+                return Result.success(userBucket.get());
+            } catch (Exception e) {
+                log.error("read user cache error!", e);
+                return Result.error(PubError.INVALID,"网关解析Token信息缓存错误");
+            }
         }
         return infoResult;
     }
-
+    
     private Collection<PermissionDto> getPermissions2(CacheType cacheType, Long roleId) {
-        RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
+        RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(
+                CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
         String key = roleId != null ? roleId.toString() : cacheType.getCode();
         List<PermissionDto> permissions = permissionsMap.get(key);
         if (permissions == null) {
@@ -171,8 +187,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         return permissions;
     }
-
-
+    
+    
     private Collection<PermissionDto> getPermissions3(CacheType cacheType, Long roleId) {
         Result<PermissionDto> res = Result.success();
         try {
@@ -194,7 +210,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         return res.getRows();
     }
-
+    
     private String getCookieToken(ServerHttpRequest request) {
         Collection<PermissionDto> permissions = getPermissions2(CacheType.PERMISSIONS_COOKIE_LIST, null);
         boolean ok = checkPermissions(permissions, request.getURI().getPath(), request.getMethod());
@@ -203,25 +219,31 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         MultiValueMap<String, HttpCookie> cookies = request.getCookies();
         HttpCookie cookie = cookies.getFirst("TOKEN");
-        if (cookie == null) return null;
+        if (cookie == null) {
+            return null;
+        }
         return cookie.getValue();
     }
-
+    
     private Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, UserInfo user) {
-
+        
         ServerHttpRequest mutableReq = exchange.getRequest().mutate()
                 .header(Constants.CURRENT_USER, user.getUserId())
                 .header(Constants.X_TOKEN_USER, user.getUsername())
                 .header(Constants.X_TOKEN_TENANT, user.getTenantId() == null ? "" : user.getTenantId().toString())
                 .build();
         ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
+
         return chain.filter(mutableExchange);
     }
-
+    
     private boolean checkPermissions(Collection<PermissionDto> permissions, String path, HttpMethod method) {
-        if (permissions.isEmpty()) return false;
+        if (permissions.isEmpty()) {
+            return false;
+        }
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        Map<String, List<PermissionDto>> permissionMap = permissions.stream().collect(Collectors.groupingBy(PermissionDto::getUrl));
+        Map<String, List<PermissionDto>> permissionMap = permissions.stream()
+                .collect(Collectors.groupingBy(PermissionDto::getUrl));
         for (Map.Entry<String, List<PermissionDto>> entry : permissionMap.entrySet()) {
             String url = entry.getKey();
             boolean ok = pathMatcher.match(url, path);
@@ -235,7 +257,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         return false;
     }
-
+    
     private boolean checkSkinUrl(String url) {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
         boolean isSkin = false;
@@ -247,7 +269,7 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         return isSkin;
     }
-
+    
     private boolean checkAuthUrl(String url) {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
         boolean isNeed = false;
@@ -259,14 +281,14 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         }
         return isNeed;
     }
-
-
+    
+    
     private void refreshToken(ServerHttpResponse originalResponse, String refreshToken) {
 //        originalResponse.setStatusCode(HttpStatus.OK);
         //token过期设置刷新标识
         originalResponse.getHeaders().add(Constants.X_REFRESH_TOKEN, refreshToken);
     }
-
+    
     /**
      * 认证错误输出
      *
@@ -282,8 +304,8 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
         return resp.writeWith(Flux.just(buffer));
     }
-
-
+    
+    
     @Override
     public int getOrder() {
         return -100;
