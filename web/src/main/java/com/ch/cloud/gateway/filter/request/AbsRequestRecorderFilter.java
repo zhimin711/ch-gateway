@@ -9,6 +9,7 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.server.RequestPath;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
@@ -19,12 +20,13 @@ import java.net.URI;
 @Log4j2
 public abstract class AbsRequestRecorderFilter implements GlobalFilter, Ordered {
 
+    String[] skipUrls = {"/upms/op/record/","/upms/login/record/"};
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest originalRequest = exchange.getRequest();
 
         URI originalRequestUri = originalRequest.getURI();
-
+        
         //只记录http的请求
         String scheme = originalRequestUri.getScheme();
         if ((!"http".equals(scheme) && !"https".equals(scheme))) {
@@ -34,6 +36,12 @@ public abstract class AbsRequestRecorderFilter implements GlobalFilter, Ordered 
         String upgrade = originalRequest.getHeaders().getUpgrade();
         if ("websocket".equalsIgnoreCase(upgrade)) {
             return chain.filter(exchange);
+        }
+        RequestPath path = originalRequest.getPath();
+        for (String skip : skipUrls) {
+            if (path.value().startsWith(skip)) {
+                return chain.filter(exchange);
+            }
         }
 
         if (originalRequest.getMethod() == HttpMethod.GET && isStaticResource(originalRequestUri)) {

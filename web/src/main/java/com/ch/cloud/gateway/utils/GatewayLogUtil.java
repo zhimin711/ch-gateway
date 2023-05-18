@@ -1,5 +1,6 @@
 package com.ch.cloud.gateway.utils;
 
+import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ch.Constants;
 import com.ch.cloud.gateway.decorator.RecorderServerHttpResponseDecorator;
@@ -28,56 +29,63 @@ import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.G
 
 @Log4j2
 public class GatewayLogUtil {
-
+    
     private GatewayLogUtil() {
     }
-
+    
     private static final String REQUEST_RECORDER_LOG_BUFFER = "RequestRecorderGlobalFilter.request_recorder_log_buffer";
+    
     private static final String REQUEST_PROCESS_SEPARATOR = "\n[REQUEST_PROCESS_SEPARATOR]\n";
-
+    
     private static boolean hasBody(HttpMethod method) {
         //只记录这3种谓词的body
         return method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH;
     }
-
+    
     public static boolean shouldRecordBody(MediaType contentType) {
-        if (contentType == null) return false;
+        if (contentType == null) {
+            return false;
+        }
         String type = contentType.getType();
         String subType = contentType.getSubtype();
-
+        
         if ("application".equals(type)) {
-            return "json".equals(subType) || "x-www-form-urlencoded".equals(subType) || "xml".equals(subType) || "atom+xml".equals(subType) || "rss+xml".equals(subType);
-        } else return "text".equals(type);
-
+            return "json".equals(subType) || "x-www-form-urlencoded".equals(subType) || "xml".equals(subType)
+                    || "atom+xml".equals(subType) || "rss+xml".equals(subType);
+        } else {
+            return "text".equals(type);
+        }
+        
         //form没有记录
     }
-
-    private static Mono<Void> doRecordBody(StringBuffer logBuffer, Flux<DataBuffer> body, Charset charset, boolean isResponse) {
-        return DataBufferFixUtil.join(body)
-                .doOnNext(wrapper -> {
-                    logBuffer.append("\"data\":");
-                    String data = new String(wrapper.getData(), charset);
-                    if (isResponse) {
-                        data = subData(data);
-                    }
-                    logBuffer.append(data);
-                    logBuffer.append("}}");
-                    wrapper.clear();
-                }).then();
+    
+    private static Mono<Void> doRecordBody(StringBuffer logBuffer, Flux<DataBuffer> body, Charset charset,
+            boolean isResponse) {
+        return DataBufferFixUtil.join(body).doOnNext(wrapper -> {
+            logBuffer.append("\"data\":");
+            String data = new String(wrapper.getData(), charset);
+            if (isResponse) {
+                data = subData(data);
+            }
+            logBuffer.append(data);
+            logBuffer.append("}}");
+            wrapper.clear();
+        }).then();
     }
-
+    
     private static String subData(String data) {
         try {
             JSONObject obj = JSONObject.parseObject(data);
-            //                JSONArray rowsArr = obj.getJSONArray("rows");
-            //                obj.put("rowsStr", StrUtil.sub(rowsArr.toString(),0,1000));
-            obj.remove("rows");
+            if (obj.containsKey("rows")) {
+                JSONArray rowsArr = obj.getJSONArray("rows");
+                obj.put("rows", rowsArr.subList(0, Math.min(rowsArr.size(), 10)));
+            }
             return obj.toJSONString();
         } catch (Exception ignored) {
         }
         return data;
     }
-
+    
     private static Charset getMediaTypeCharset(@Nullable MediaType mediaType) {
         if (mediaType != null && mediaType.getCharset() != null) {
             return mediaType.getCharset();
@@ -85,16 +93,16 @@ public class GatewayLogUtil {
             return StandardCharsets.UTF_8;
         }
     }
-
+    
     public static Mono<Void> recorderOriginalRequest(ServerWebExchange exchange) {
         StringBuffer logBuffer = new StringBuffer();
         exchange.getAttributes().put(REQUEST_RECORDER_LOG_BUFFER, logBuffer);
-
+        
         ServerHttpRequest request = exchange.getRequest();
         logBuffer.append("{\"").append("request").append("\":");
         return recorderRequest(request, request.getURI(), logBuffer);
     }
-
+    
     public static Mono<Void> recorderRouteRequest(ServerWebExchange exchange) {
         URI uri = exchange.getRequiredAttribute(GATEWAY_REQUEST_URL_ATTR);
         StringBuffer logBuffer = exchange.getAttribute(REQUEST_RECORDER_LOG_BUFFER);
@@ -103,37 +111,37 @@ public class GatewayLogUtil {
         } else {
             logBuffer.append(REQUEST_PROCESS_SEPARATOR);
         }
-
+        
         logBuffer.append("{\"").append("proxy").append("\":{");
         appendKeyValueEnd(logBuffer, "url", uri.toString());
         logBuffer.append("}}");
         return Mono.empty();
-        
+
 //        return recorderRequest(exchange.getRequest(), uri, logBuffer);
     }
-
+    
     private static void appendKeyValue(StringBuffer logBuffer, String key, String value) {
         logBuffer.append("\"").append(key).append("\":\"").append(value).append("\"").append(",");
     }
-
+    
     private static void appendKeyValueEnd(StringBuffer logBuffer, String key, String value) {
         logBuffer.append("\"").append(key).append("\":\"").append(value).append("\"");
     }
-
+    
     private static Mono<Void> recorderRequest(ServerHttpRequest request, URI uri, StringBuffer logBuffer) {
         if (uri == null) {
             uri = request.getURI();
         }
         logBuffer.append("{");
         appendKeyValue(logBuffer, "url", uri.toString());
-
+        
         HttpMethod method = request.getMethod();
         if (method != null) {
             appendKeyValue(logBuffer, "method", method.name());
         }
         HttpHeaders headers = request.getHeaders();
         recorderHeader(logBuffer, headers);
-
+        
         Charset bodyCharset = null;
         if (hasBody(method)) {
             long length = headers.getContentLength();
@@ -141,20 +149,21 @@ public class GatewayLogUtil {
                 MediaType contentType = headers.getContentType();
                 logBuffer.append(",");
                 appendKeyValue(logBuffer, "contentType", contentType != null ? contentType.toString() : "");
-                if (shouldRecordBody(contentType))
+                if (shouldRecordBody(contentType)) {
                     bodyCharset = getMediaTypeCharset(contentType);
+                }
             }
         }
-
+        
         if (bodyCharset != null) {
             return doRecordBody(logBuffer, request.getBody(), bodyCharset, false);
         } else {
             logBuffer.append("}}");
             return Mono.empty();
         }
-
+        
     }
-
+    
     private static void recorderHeader(StringBuffer logBuffer, HttpHeaders headers) {
         logBuffer.append("\"headers\":{");
         AtomicInteger i = new AtomicInteger();
@@ -171,15 +180,15 @@ public class GatewayLogUtil {
         });
         logBuffer.append("}");
     }
-
+    
     public static Mono<Void> recorderResponse(ServerWebExchange exchange) {
         ServerHttpResponse response = exchange.getResponse();
         StringBuffer logBuffer = exchange.getAttribute(REQUEST_RECORDER_LOG_BUFFER);
         Objects.requireNonNull(logBuffer);
         logBuffer.append(REQUEST_PROCESS_SEPARATOR);
-
+        
         logBuffer.append("{\"").append("response").append("\":");
-
+        
         HttpStatus code = response.getStatusCode();
         if (code == null) {
             logBuffer.append("{\"返回异常\"}");
@@ -187,10 +196,10 @@ public class GatewayLogUtil {
         }
         logBuffer.append("{");
         appendKeyValue(logBuffer, "status", code.value() + "");
-
+        
         HttpHeaders headers = response.getHeaders();
         recorderHeader(logBuffer, headers);
-
+        
         Charset bodyCharset = null;
         if (shouldRecordBody(headers.getContentType())) {
             bodyCharset = getMediaTypeCharset(headers.getContentType());
@@ -204,14 +213,16 @@ public class GatewayLogUtil {
             return Mono.empty();
         }
     }
-
+    
     public static String getLogData(ServerWebExchange exchange) {
         return getLogData(exchange, 0, 0);
     }
-
+    
     public static String getLogData(ServerWebExchange exchange, long startTimeMillis, long endTimeMillis) {
         StringBuffer logBuffer = exchange.getAttribute(REQUEST_RECORDER_LOG_BUFFER);
-        if (logBuffer == null) return null;
+        if (logBuffer == null) {
+            return null;
+        }
         logBuffer.append(REQUEST_PROCESS_SEPARATOR);
         logBuffer.append("{\"").append("record").append("\":{");
         ServerHttpRequest request = exchange.getRequest();
@@ -221,8 +232,8 @@ public class GatewayLogUtil {
         if (CommonUtils.isNotEmpty(userList)) {
             appendKeyValue(logBuffer, "username", userList.get(0));
         }
-        appendKeyValue(logBuffer, "startTimestamp", startTimeMillis + "");
-        appendKeyValueEnd(logBuffer, "endTimestamp", endTimeMillis + "");
+        appendKeyValue(logBuffer, "startTimestamp", String.valueOf(startTimeMillis));
+        appendKeyValueEnd(logBuffer, "endTimestamp", String.valueOf(endTimeMillis));
         logBuffer.append("}}");
         return logBuffer.toString();
     }
