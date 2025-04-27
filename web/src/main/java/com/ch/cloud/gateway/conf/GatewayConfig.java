@@ -39,19 +39,19 @@ public class GatewayConfig {
     private static String getIP(ServerHttpRequest request) {
         if (request == null) return "N/A";
         String ip = request.getHeaders().getFirst("x-forwarded-for");
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeaders().getFirst("x-Original-Forwarded-For");
         }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeaders().getFirst("Proxy-Client-IP");
         }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeaders().getFirst("WL-Proxy-Client-IP");
         }
-        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeaders().getFirst("X-Real-IP");
         }
-        if ((ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) && request.getRemoteAddress() != null) {
+        if ((ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) && request.getRemoteAddress() != null) {
             ip = request.getRemoteAddress().getHostName();
         }
         return ip;
