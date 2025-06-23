@@ -45,13 +45,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * 权限过滤器
+ * 权限过滤器 - 已废弃
+ * 
+ * 该类已被重构为多个独立的权限过滤器：
+ * - WhiteListPermissionFilter: 白名单权限过滤器
+ * - CookiePermissionFilter: Cookie权限过滤器  
+ * - LoginPermissionFilter: 登录权限过滤器
+ * - RolePermissionFilter: 角色权限过滤器
+ * 
+ * 请使用新的权限过滤器架构
  *
  * @author zhimi
  * @since 2020-1-1
+ * @deprecated 已废弃，请使用新的权限过滤器架构
  */
 @Configuration
 @Slf4j
+@Deprecated
 public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     
     private final String[] skipUrls = {"/auth/captcha/**", "/auth/login/**", "/auth/logout/**", "/*/static/**"};
@@ -66,73 +76,9 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String url = exchange.getRequest().getURI().getPath();
-        if (checkSkinUrl(url)) {
-            //跳过不需要验证的路径
-            return chain.filter(exchange);
-        }
-        Collection<PermissionDto> whiteList = getPermissions2(CacheType.PERMISSIONS_WHITE_LIST, null);
-        if (!whiteList.isEmpty()) { // 白名单接口地址
-            boolean ok = checkPermissions(whiteList, exchange.getRequest().getURI().getPath(),
-                    exchange.getRequest().getMethod());
-            if (ok) {
-                //将现在的request，添加当前身份
-                return chain.filter(exchange);
-            }
-        }
-        //获取token
-        String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
-        ServerHttpResponse resp = exchange.getResponse();
-        if (checkAuthUrl(url)) {
-            if (CommonUtils.isEmpty(token)) {
-                return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
-            }
-            return chain.filter(exchange);
-        }
-        if (CommonUtils.isEmpty(token)) {
-            token = getCookieToken(exchange.getRequest());
-        }
-        if (CommonUtils.isEmpty(token)) {
-            //没有token
-            return authError(resp, Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
-        } else {
-            //有token
-            //redis cache replace sso client
-            Result<UserInfo> userResult = getUserInfo(token);
-            if (!userResult.isSuccess()) {
-                PubError err = PubError.fromCode(userResult.getCode());
-                if (err == PubError.EXPIRED) {
-                    refreshToken(resp, StatusS.ENABLED);
-                }
-                return authError(resp, Result.error(err, userResult.getMessage()));
-            }
-            UserInfo user = userResult.get();
-//            log.info("request user: {}", user);
-            //redis cache replace sso client findHiddenPermissions
-            Collection<PermissionDto> loginPermissions = getPermissions2(CacheType.PERMISSIONS_LOGIN_LIST, null);
-            
-            if (!loginPermissions.isEmpty()) {
-                boolean ok = checkPermissions(loginPermissions, exchange.getRequest().getURI().getPath(),
-                        exchange.getRequest().getMethod());
-                if (ok) {
-                    //将现在的request，添加当前身份
-                    return toUser(exchange, chain, user);
-                }
-            }
-            
-            //redis cache replace sso client findPermissionsByRoleId
-            Collection<PermissionDto> authPermissions = getPermissions2(CacheType.PERMISSIONS_AUTH_LIST,
-                    user.getRoleId());
-            
-            boolean ok = checkPermissions(authPermissions, exchange.getRequest().getURI().getPath(),
-                    exchange.getRequest().getMethod());
-            if (!ok) {
-                return authError(resp, Result.error(PubError.NOT_AUTH, url + " not authority!"));
-            }
-            //将现在的request，添加当前身份
-            return toUser(exchange, chain, user);
-        }
-//        return null;
+        // 已废弃的过滤器，直接放行，由新的权限过滤器处理
+        log.warn("使用已废弃的JwtAuthenticationTokenFilter，建议迁移到新的权限过滤器架构");
+        return chain.filter(exchange);
     }
     
     private Result<UserInfo> getUserInfo(String token) {
@@ -308,6 +254,6 @@ public class JwtAuthenticationTokenFilter implements GlobalFilter, Ordered {
     
     @Override
     public int getOrder() {
-        return -100;
+        return -50; // 降低优先级，让新的过滤器先执行
     }
 }

@@ -18,7 +18,7 @@ spring:
         namespace: ${nacos.config.namespace:}
         shared-configs:
           -
-            dataId: ch-gateway.yml
+            dataId: ${spring.application.name}.yml
             refresh: true
             group: ${spring.application.name}
 #    sentinel:

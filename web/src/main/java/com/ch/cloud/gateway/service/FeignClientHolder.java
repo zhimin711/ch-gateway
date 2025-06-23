@@ -3,8 +3,8 @@ package com.ch.cloud.gateway.service;
 import com.ch.cloud.sso.client.SsoLoginClient;
 import com.ch.cloud.sso.client.SsoUserClient;
 import com.ch.cloud.sso.pojo.UserInfo;
-import com.ch.cloud.upms.client.UpmsPermissionClientService;
-import com.ch.cloud.upms.client.UpmsRoleClientService;
+import com.ch.cloud.upms.client.UpmsPermissionClient;
+import com.ch.cloud.upms.client.UpmsRoleClient;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.result.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -34,10 +34,10 @@ public class FeignClientHolder {
     private SsoUserClient ssoUserClient;
     @Lazy
     @Autowired
-    private UpmsPermissionClientService upmsPermissionClientService;
+    private UpmsPermissionClient upmsPermissionClientService;
     @Lazy
     @Autowired
-    private UpmsRoleClientService upmsRoleClientService;
+    private UpmsRoleClient upmsRoleClientService;
 
     /**
      * 这里必须在异步线程中执行，执行结果返回Future
@@ -55,7 +55,11 @@ public class FeignClientHolder {
                 r1.get().setUserId(r2.get().getUserId());
                 r1.get().setRoleId(r2.get().getRoleId());
                 r1.get().setTenantId(r2.get().getTenantId());
+            }else {
+                log.error("获取 user info 错误！");
             }
+        }else{
+            log.error("获取 login info 失败！");
         }
         return new AsyncResult<>(r1);
     }

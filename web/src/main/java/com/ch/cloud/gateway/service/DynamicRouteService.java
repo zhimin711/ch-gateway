@@ -7,6 +7,7 @@ import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.ch.cloud.gateway.repository.RedisRouteDefinitionRepository;
+import com.ch.utils.CommonUtils;
 import com.google.common.collect.Sets;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +15,12 @@ import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -44,16 +47,30 @@ public class DynamicRouteService implements ApplicationEventPublisherAware {
     
     private Set<String> routerIds;
     
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+    
     @PostConstruct
     public void dynamicRouteByNacosListener() {
         try {
             routerIds = Sets.newHashSet();
             ConfigService configService = NacosFactory.createConfigService(
                     nacosConfigProperties.assembleConfigServiceProperties());
-            configService.getConfig(dataId, nacosConfigProperties.getGroup(), 5000);
+            
+            if (CommonUtils.isEmpty(
+                    stringRedisTemplate.opsForHash().values(RedisRouteDefinitionRepository.GATEWAY_ROUTES))) {
+                String config = configService.getConfig(dataId, nacosConfigProperties.getGroup(), 5000);
+                log.info("初始化路由信息: {}", config);
+                List<RouteDefinition> gatewayRouteDefinitions = JSON.parseArray(config, RouteDefinition.class);
+                for (RouteDefinition routeDefinition : gatewayRouteDefinitions) {
+                    addRoute(routeDefinition);
+                }
+                publish();
+            }
             configService.addListener(dataId, nacosConfigProperties.getGroup(), new Listener() {
                 @Override
                 public void receiveConfigInfo(String configInfo) {
+                    log.info("更新路由信息: {}", configInfo);
                     clearRoute();
                     try {
                         List<RouteDefinition> gatewayRouteDefinitions = JSON.parseArray(configInfo,
