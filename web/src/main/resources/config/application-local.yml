@@ -63,6 +63,30 @@ gateway:
     secure: false  # 本地环境设为false，生产环境建议设为true
     auto-refresh: true
     enable-log: true
+  
+  # 请求记录配置
+  request-recorder:
+    enabled: true                    # 是否启用请求记录
+    skip-urls:                       # 跳过的URL路径
+      - "/upms/op/record/"
+      - "/upms/login/record/"
+      - "/health"
+      - "/actuator/**"
+    record-static-resources: false   # 是否记录静态资源请求
+    record-websocket: false          # 是否记录WebSocket请求
+    record-get-requests: true        # 是否记录GET请求
+    timeout: 30000                   # 请求记录超时时间（毫秒）
+    record-request-body: true        # 是否启用请求体记录
+    record-response-body: true       # 是否启用响应体记录
+    max-request-body-size: 1048576   # 请求体最大大小（字节）- 1MB
+    max-response-body-size: 1048576  # 响应体最大大小（字节）- 1MB
+    enable-sensitive-masking: true   # 是否启用敏感信息脱敏
+    sensitive-fields:                # 敏感字段列表
+      - "password"
+      - "token"
+      - "authorization"
+      - "secret"
+      - "key"
 
 ####超时配置####
 ribbon:
