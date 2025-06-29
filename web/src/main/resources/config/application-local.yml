@@ -51,6 +51,19 @@ spring:
             series: SERVER_ERROR
 #      loadBalanced: true
 ##############end#####################
+
+# Cookie刷新配置
+gateway:
+  cookie:
+    token-name: TOKEN
+    max-age: 1800  # 30分钟
+    refresh-threshold: 300  # 5分钟内过期时刷新
+    path: /
+    http-only: true
+    secure: false  # 本地环境设为false，生产环境建议设为true
+    auto-refresh: true
+    enable-log: true
+
 ####超时配置####
 ribbon:
   ReadTimeout: 10000
