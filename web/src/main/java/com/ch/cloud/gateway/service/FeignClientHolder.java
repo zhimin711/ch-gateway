@@ -3,8 +3,10 @@ package com.ch.cloud.gateway.service;
 import com.ch.cloud.sso.client.SsoLoginClient;
 import com.ch.cloud.sso.client.SsoUserClient;
 import com.ch.cloud.sso.pojo.UserInfo;
+import com.ch.cloud.upms.client.UpmsAuthCodeClient;
 import com.ch.cloud.upms.client.UpmsPermissionClient;
 import com.ch.cloud.upms.client.UpmsRoleClient;
+import com.ch.cloud.upms.dto.AuthCodePermissionDTO;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.result.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +40,9 @@ public class FeignClientHolder {
     @Lazy
     @Autowired
     private UpmsRoleClient upmsRoleClientService;
+    @Lazy
+    @Autowired
+    private UpmsAuthCodeClient upmsAuthCodeClient;
 
     /**
      * 这里必须在异步线程中执行，执行结果返回Future
@@ -69,6 +74,12 @@ public class FeignClientHolder {
         log.info("开始使用 userInfo ...");
         Result<UserInfo> s = ssoUserClient.info(token);
         return new AsyncResult<>(s.get());
+    }
+    
+    @Async
+    public Future<AuthCodePermissionDTO> authCodePermissions(String code) {
+        Result<AuthCodePermissionDTO> res = upmsAuthCodeClient.getPermission(code);
+        return new AsyncResult<>(res.get());
     }
 
     @Async

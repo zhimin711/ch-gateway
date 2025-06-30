@@ -16,6 +16,7 @@ public enum CacheType {
     PERMISSIONS_LOGIN_LIST("gateway:permission:login","login"),
     PERMISSIONS_COOKIE_LIST("gateway:permission:cookie","cookie"),
     PERMISSIONS_AUTH_LIST("gateway:permission:auth",""),
+    PERMISSIONS_TEMP_LIST("gateway:permission:temp","temp"),
     GATEWAY_TOKEN("gateway:token", "token"),
     GATEWAY_USER("gateway:user","user");
 
