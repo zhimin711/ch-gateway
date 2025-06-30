@@ -2,7 +2,6 @@ package com.ch.cloud.gateway.filter;
 
 import com.alibaba.fastjson2.JSON;
 import com.ch.Constants;
-import com.ch.StatusS;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.sso.pojo.UserInfo;
@@ -26,10 +25,8 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 用户认证工具类 提供通用的用户信息获取和错误处理功能

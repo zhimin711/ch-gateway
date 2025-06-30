@@ -10,8 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.annotation.PostConstruct;
 
 /**
- * 权限过滤器配置类
- * 统一管理所有权限过滤器
+ * 权限过滤器配置类 统一管理所有权限过滤器
  *
  * @author zhimi
  * @since 2024-1-1
@@ -19,13 +18,13 @@ import javax.annotation.PostConstruct;
 @Configuration
 @Slf4j
 public class PermissionFilterConfiguration {
-
+    
     @Autowired
     private FeignClientHolder feignClientHolder;
-
+    
     @Autowired
     private RedissonClient redissonClient;
-
+    
     @PostConstruct
     public void init() {
         // 初始化工具类
@@ -33,7 +32,7 @@ public class PermissionFilterConfiguration {
         UserAuthUtils.setRedissonClient(redissonClient);
         log.info("权限过滤器配置初始化完成");
     }
-
+    
     /**
      * 白名单权限过滤器
      */
@@ -41,7 +40,15 @@ public class PermissionFilterConfiguration {
     public WhiteListPermissionFilter whiteListPermissionFilter() {
         return new WhiteListPermissionFilter();
     }
-
+    
+    /**
+     * 授权码权限过滤器
+     */
+    @Bean
+    public AuthCodePermissionFilter authCodePermissionFilter() {
+        return new AuthCodePermissionFilter();
+    }
+    
     /**
      * Cookie权限过滤器
      */
@@ -49,7 +56,7 @@ public class PermissionFilterConfiguration {
     public CookiePermissionFilter cookiePermissionFilter() {
         return new CookiePermissionFilter();
     }
-
+    
     /**
      * 登录权限过滤器
      */
@@ -57,7 +64,7 @@ public class PermissionFilterConfiguration {
     public LoginPermissionFilter loginPermissionFilter() {
         return new LoginPermissionFilter();
     }
-
+    
     /**
      * 角色权限过滤器
      */
