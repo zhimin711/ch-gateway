@@ -13,10 +13,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Resource;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
@@ -50,47 +50,50 @@ public class AuthCodePermissionFilter extends AbstractPermissionFilter {
                     Result.error(PubError.INVALID, "缺少临时校验码token参数"));
         }
         
-        // 校验临时码（通过feignClientHolder获取DTO并校验）
-        try {
+        return Mono.fromCallable(() -> {
             Future<AuthCodePermissionDTO> future = feignClientHolder.authCodePermissions(tempToken);
             AuthCodePermissionDTO dto = future.get();
             if (dto == null) {
                 log.warn("临时码不存在: {}", tempToken);
-                return UserAuthUtils.authError(exchange.getResponse(),
-                        Result.error(PubError.INVALID, "临时码不存在"));
+                throw new RuntimeException("临时码不存在");
             }
             if (dto.getStatus() == null || dto.getStatus() != 1) {
                 log.warn("临时码状态无效: {}", tempToken);
-                return UserAuthUtils.authError(exchange.getResponse(),
-                        Result.error(PubError.INVALID, "临时码状态无效"));
+                throw new RuntimeException("临时码状态无效");
             }
             if (dto.getExpireTime() != null && dto.getExpireTime().before(new java.util.Date())) {
                 log.warn("临时码已过期: {}", tempToken);
-                return UserAuthUtils.authError(exchange.getResponse(),
-                        Result.error(PubError.INVALID, "临时码已过期"));
+                throw new RuntimeException("临时码已过期");
             }
             if (dto.getMaxUses() != null && dto.getUsedCount() != null && dto.getUsedCount() >= dto.getMaxUses()) {
                 log.warn("临时码已超出最大使用次数: {}", tempToken);
-                return UserAuthUtils.authError(exchange.getResponse(),
-                        Result.error(PubError.INVALID, "临时码已超出最大使用次数"));
+                throw new RuntimeException("临时码已超出最大使用次数");
             }
-            // 新增：校验权限
             if (dto.getPermissions() != null && !dto.getPermissions().isEmpty()) {
                 boolean allowed = checkPermissions(dto.getPermissions(), path, request.getMethod());
                 if (!allowed) {
                     log.warn("临时码权限不足: {}，path: {}", tempToken, path);
-                    return UserAuthUtils.authError(exchange.getResponse(),
-                            Result.error(PubError.NOT_AUTH, "临时码无权访问该接口"));
+                    throw new RuntimeException("临时码无权访问该接口");
                 }
             }
-            // 其他权限校验可根据业务补充
+            return dto;
+        })
+        .subscribeOn(Schedulers.boundedElastic())
+        .flatMap(dto -> {
             log.info("临时码校验通过，路径: {}，token: {}", path, tempToken);
             return chain.filter(exchange);
-        } catch (Exception e) {
-            log.error("临时码校验异常", e);
-            return UserAuthUtils.authError(exchange.getResponse(),
-                    Result.error(PubError.INVALID, "临时码校验异常"));
-        }
+        })
+        .onErrorResume(e -> {
+            String msg = e.getMessage();
+            if ("临时码不存在".equals(msg) || "临时码状态无效".equals(msg) || "临时码已过期".equals(msg) || "临时码已超出最大使用次数".equals(msg)) {
+                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, msg));
+            } else if ("临时码无权访问该接口".equals(msg)) {
+                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.NOT_AUTH, msg));
+            } else {
+                log.error("临时码校验异常", e);
+                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "临时码校验异常"));
+            }
+        });
     }
     
     @Override
@@ -119,19 +122,4 @@ public class AuthCodePermissionFilter extends AbstractPermissionFilter {
         return false;
     }
     
-    /**
-     * 校验临时码逻辑（可根据实际业务实现）
-     */
-    private boolean validateTempToken(String tempToken) {
-        // 示例：假设Redis中存在key为TEMP_CODE:{tempToken}即为有效
-        String key = "TEMP_CODE:" + tempToken;
-        Future<AuthCodePermissionDTO> future = feignClientHolder.authCodePermissions(tempToken);
-        try {
-            AuthCodePermissionDTO dto = future.get();
-            
-        } catch (Exception e) {
-            log.error("临时码校验异常", e);
-        }
-        return false;
-    }
 } 
