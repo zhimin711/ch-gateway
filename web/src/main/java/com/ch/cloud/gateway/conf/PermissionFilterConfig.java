@@ -1,5 +1,6 @@
-package com.ch.cloud.gateway.filter;
+package com.ch.cloud.gateway.conf;
 
+import com.ch.cloud.gateway.filter.*;
 import com.ch.cloud.gateway.service.FeignClientHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
@@ -17,14 +18,14 @@ import javax.annotation.PostConstruct;
  */
 @Configuration
 @Slf4j
-public class PermissionFilterConfiguration {
-    
+public class PermissionFilterConfig {
+
     @Autowired
     private FeignClientHolder feignClientHolder;
-    
+
     @Autowired
     private RedissonClient redissonClient;
-    
+
     @PostConstruct
     public void init() {
         // 初始化工具类
@@ -32,7 +33,7 @@ public class PermissionFilterConfiguration {
         UserAuthUtils.setRedissonClient(redissonClient);
         log.info("权限过滤器配置初始化完成");
     }
-    
+
     /**
      * 白名单权限过滤器
      */
@@ -40,7 +41,7 @@ public class PermissionFilterConfiguration {
     public WhiteListPermissionFilter whiteListPermissionFilter() {
         return new WhiteListPermissionFilter();
     }
-    
+
     /**
      * 授权码权限过滤器
      */
@@ -48,7 +49,7 @@ public class PermissionFilterConfiguration {
     public AuthCodePermissionFilter authCodePermissionFilter() {
         return new AuthCodePermissionFilter();
     }
-    
+
     /**
      * Cookie权限过滤器
      */
@@ -56,7 +57,7 @@ public class PermissionFilterConfiguration {
     public CookiePermissionFilter cookiePermissionFilter() {
         return new CookiePermissionFilter();
     }
-    
+
     /**
      * 登录权限过滤器
      */
@@ -64,7 +65,7 @@ public class PermissionFilterConfiguration {
     public LoginPermissionFilter loginPermissionFilter() {
         return new LoginPermissionFilter();
     }
-    
+
     /**
      * 角色权限过滤器
      */
@@ -72,4 +73,4 @@ public class PermissionFilterConfiguration {
     public RolePermissionFilter rolePermissionFilter() {
         return new RolePermissionFilter();
     }
-} 
+}
