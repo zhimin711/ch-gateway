@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 import java.util.Collection;
 
 /**
- * 临时码校验过滤器 从URL参数获取token，校验通过则放行
+ * 授权码校验过滤器 从URL参数获取token，校验通过则放行
  *
  * @author zhimi
  * @since 2024-1-1
@@ -34,51 +34,51 @@ public class AuthCodePermissionFilter extends AbstractPermissionFilter {
     @Override
     protected Mono<Void> doFilter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        String tempToken = request.getQueryParams().getFirst("token");
+        String tempToken = request.getQueryParams().getFirst("apiKey");
         String path = request.getURI().getPath();
-        log.debug("临时码校验: {}，token={}", path, tempToken);
+        log.debug("授权码校验: {}，apiKey={}", path, tempToken);
         
         if (CommonUtils.isEmpty(tempToken)) {
-            log.warn("临时码缺失，路径: {}，必须提供token参数", path);
+            log.warn("授权码缺失，路径: {}，必须提供apiKey参数", path);
             return UserAuthUtils.authError(exchange.getResponse(),
-                    Result.error(PubError.INVALID, "缺少临时校验码token参数"));
+                    Result.error(PubError.INVALID, "缺少临时授权码apiKey参数"));
         }
-        // 校验临时码（通过feignClientHolder获取DTO并校验）
+        // 校验授权码（通过feignClientHolder获取DTO并校验）
         try {
             AuthCodePermissionDTO dto = UserAuthUtils.getAuthCodeInfo(tempToken);
             if (dto == null) {
-                log.warn("临时码不存在: {}", tempToken);
-                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "临时码不存在"));
+                log.warn("授权码不存在: {}", tempToken);
+                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "授权码不存在"));
             }
             if (dto.getStatus() == null || dto.getStatus() != 1) {
-                log.warn("临时码状态无效: {}", tempToken);
+                log.warn("授权码状态无效: {}", tempToken);
                 return UserAuthUtils.authError(exchange.getResponse(),
-                        Result.error(PubError.INVALID, "临时码状态无效"));
+                        Result.error(PubError.INVALID, "授权码状态无效"));
             }
             if (dto.getExpireTime() != null && dto.getExpireTime().before(new java.util.Date())) {
-                log.warn("临时码已过期: {}", tempToken);
-                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "临时码已过期"));
+                log.warn("授权码已过期: {}", tempToken);
+                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "授权码已过期"));
             }
             if (dto.getMaxUses() != null && dto.getUsedCount() != null && dto.getUsedCount() >= dto.getMaxUses()) {
-                log.warn("临时码已超出最大使用次数: {}", tempToken);
+                log.warn("授权码已超出最大使用次数: {}", tempToken);
                 return UserAuthUtils.authError(exchange.getResponse(),
-                        Result.error(PubError.INVALID, "临时码已超出最大使用次数"));
+                        Result.error(PubError.INVALID, "授权码已超出最大使用次数"));
             }
             // 新增：校验权限
             if (dto.getPermissions() != null && !dto.getPermissions().isEmpty()) {
                 boolean allowed = checkPermissions(dto.getPermissions(), path, request.getMethod());
                 if (!allowed) {
-                    log.warn("临时码权限不足: {}，path: {}", tempToken, path);
+                    log.warn("授权码权限不足: {}，path: {}", tempToken, path);
                     return UserAuthUtils.authError(exchange.getResponse(),
-                            Result.error(PubError.NOT_AUTH, "临时码无权访问该接口"));
+                            Result.error(PubError.NOT_AUTH, "授权码无权访问该接口"));
                 }
             }
             // 其他权限校验可根据业务补充
-            log.info("临时码校验通过，路径: {}，token: {}", path, tempToken);
+            log.info("授权码校验通过，路径: {}，token: {}", path, tempToken);
             return skipAfterFilter(exchange, chain);
         } catch (Exception e) {
-            log.error("临时码校验异常", e);
-            return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "临时码校验异常"));
+            log.error("授权码校验异常", e);
+            return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "授权码校验异常"));
         }
     }
     
@@ -90,16 +90,17 @@ public class AuthCodePermissionFilter extends AbstractPermissionFilter {
     
     @Override
     protected boolean shouldProcess(ServerWebExchange exchange) {
-        // 只要URL参数中有token就处理，避免在shouldProcess中调用阻塞方法
-        String tempToken = exchange.getRequest().getQueryParams().getFirst("token");
         String path = exchange.getRequest().getURI().getPath();
         Collection<PermissionDto> permissions = getPermissions(CacheType.PERMISSIONS_TEMP_LIST, null);
         
         if (!permissions.isEmpty()) {
             boolean isTempList = checkPermissions(permissions, path, exchange.getRequest().getMethod());
-            return !isTempList;
+            if (isTempList) {
+                log.debug("路径 {} 需要临时授权码验证", path);
+                return true;
+            }
         }
-        return CommonUtils.isNotEmpty(tempToken);
+        return false;
     }
     
 } 

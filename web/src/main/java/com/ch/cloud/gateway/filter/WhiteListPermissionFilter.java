@@ -39,7 +39,7 @@ public class WhiteListPermissionFilter extends AbstractPermissionFilter {
         if (!whiteList.isEmpty()) {
             boolean isWhiteList = checkPermissions(whiteList, path, exchange.getRequest().getMethod());
             if (isWhiteList) {
-                log.debug("路径 {} 在白名单中，可跳过后面的过滤器", path);
+                log.debug("路径 {} 在白名单中，可以跳过后面的过滤器", path);
                 skipAfter = true;
             }
         }

@@ -102,6 +102,7 @@ public class FeignClientHolder {
         return new AsyncResult<>(upmsRoleClient.findPermissionsByRoleId(roleId, null));
     }
     
+    @Async
     public Future<Result<PermissionDto>> tempPermissions() {
         return new AsyncResult<>(upmsPermissionClient.authCode());
     }

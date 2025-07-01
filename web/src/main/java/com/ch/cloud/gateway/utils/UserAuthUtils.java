@@ -75,7 +75,7 @@ public class UserAuthUtils {
                 redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
             }
             tokenBucket.set(md5);
-            Duration duration = Duration.of(user.getExpireAt(), ChronoUnit.MILLIS);
+            Duration duration = Duration.of(user.getExpireAt() - System.currentTimeMillis(), ChronoUnit.MILLIS);
             userBucket.set(user, duration);
         } else {
             try {
