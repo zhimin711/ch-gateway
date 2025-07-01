@@ -106,11 +106,12 @@ public class UserAuthUtils {
     /**
      * 将用户信息添加到请求头
      */
-    public static Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, UserInfo user) {
+    public static Mono<Void> toUser(ServerWebExchange exchange, GatewayFilterChain chain, UserInfo user,
+            boolean skipAfter) {
         ServerHttpRequest mutableReq = exchange.getRequest().mutate().header(Constants.CURRENT_USER, user.getUserId())
                 .header(Constants.X_TOKEN_USER, user.getUsername())
                 .header(Constants.X_TOKEN_TENANT, user.getTenantId() == null ? "" : user.getTenantId().toString())
-                .build();
+                .header(GatewayConstants.FILTER_HEADER_SKIP_AFTER, skipAfter ? "true" : "false").build();
         ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
         return chain.filter(mutableExchange);
     }

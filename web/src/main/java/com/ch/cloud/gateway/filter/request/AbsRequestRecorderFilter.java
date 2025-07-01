@@ -1,7 +1,7 @@
 package com.ch.cloud.gateway.filter.request;
 
 import com.ch.cloud.gateway.conf.RequestRecorderConfig;
-import com.ch.cloud.gateway.utils.PathConstants;
+import com.ch.cloud.gateway.utils.GatewayConstants;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -88,8 +88,8 @@ public abstract class AbsRequestRecorderFilter implements GlobalFilter, Ordered 
      */
     protected boolean isStaticResource(URI originalRequestUri) {
         AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        boolean isDownload = pathMatcher.match(PathConstants.DOWNLOAD_PATTERN, originalRequestUri.getPath());
-        boolean isImages = pathMatcher.match(PathConstants.IMAGES_PATTERN, originalRequestUri.getPath());
+        boolean isDownload = pathMatcher.match(GatewayConstants.PATH_DOWNLOAD_PATTERN, originalRequestUri.getPath());
+        boolean isImages = pathMatcher.match(GatewayConstants.PATH_IMAGES_PATTERN, originalRequestUri.getPath());
         return isDownload || isImages;
     }
 

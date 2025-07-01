@@ -2,9 +2,11 @@ package com.ch.cloud.gateway.filter;
 
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.FeignClientHolder;
+import com.ch.cloud.gateway.utils.GatewayConstants;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.cloud.upms.enums.PermissionType;
 import com.ch.result.Result;
+import com.ch.utils.CommonUtils;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMapCache;
@@ -15,6 +17,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -55,7 +58,7 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        if (shouldSkip(exchange)) {
+        if (skipAfter(exchange) && shouldSkip(exchange)) {
             return chain.filter(exchange);
         }
         
@@ -65,6 +68,24 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
         
         return chain.filter(exchange);
     }
+    
+    private boolean skipAfter(ServerWebExchange exchange) {
+        // 不跳过任何请求，让当前过滤器处理临时码校验
+        String skipAfter = exchange.getRequest().getHeaders().getFirst(GatewayConstants.FILTER_HEADER_SKIP_AFTER);
+        if (CommonUtils.isEquals(skipAfter, "true")) {
+            log.debug("上层业务已标记校验跳过后续校验: {}", getClass().getSimpleName());
+            return true;
+        }
+        return false;
+    }
+    
+    protected Mono<Void> skipAfterFilter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest mutableReq = exchange.getRequest().mutate()
+                .header(GatewayConstants.FILTER_HEADER_SKIP_AFTER, "true").build();
+        ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
+        return chain.filter(mutableExchange);
+    }
+    
     
     /**
      * 子类需要实现的过滤器优先级

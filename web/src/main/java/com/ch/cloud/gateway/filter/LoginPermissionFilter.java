@@ -3,7 +3,6 @@ package com.ch.cloud.gateway.filter;
 import com.ch.Constants;
 import com.ch.StatusS;
 import com.ch.cloud.gateway.pojo.CacheType;
-import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.gateway.utils.UserAuthUtils;
 import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.dto.PermissionDto;
@@ -11,15 +10,12 @@ import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.Resource;
 import java.util.Collection;
 
 /**
@@ -33,21 +29,27 @@ import java.util.Collection;
 @Slf4j
 public class LoginPermissionFilter extends AbstractPermissionFilter {
 
-    @Autowired
-    private FeignClientHolder feignClientHolder;
-
-    @Resource
-    private RedissonClient redissonClient;
-    
     @Override
     protected int getFilterOrder() {
-        return -150; // 第二优先级
+        return -150; // 第3 优先级
     }
 
     @Override
     protected Mono<Void> doFilter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         log.debug("登录权限检查: {}", path);
+        
+        
+        Collection<PermissionDto> loginPermissions = getPermissions(CacheType.PERMISSIONS_LOGIN_LIST, null);
+        
+        boolean skipAfter = false;
+        if (!loginPermissions.isEmpty()) {
+            boolean isLoginPermission = checkPermissions(loginPermissions, path, exchange.getRequest().getMethod());
+            if (isLoginPermission) {
+                log.debug("路径 {} 仅需要登录验证", path);
+                skipAfter = true;
+            }
+        }
         
         // 获取token
         String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
@@ -71,28 +73,18 @@ public class LoginPermissionFilter extends AbstractPermissionFilter {
         log.debug("登录权限验证通过，用户: {}", user.getUsername());
         
         // 将用户信息添加到请求头
-        return UserAuthUtils.toUser(exchange, chain, user);
+        return UserAuthUtils.toUser(exchange, chain, user, skipAfter);
     }
 
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
         // 如果已经被白名单处理，则跳过
-        return false;
+        return true;
     }
 
     @Override
     protected boolean shouldProcess(ServerWebExchange exchange) {
-        String path = exchange.getRequest().getURI().getPath();
-        Collection<PermissionDto> loginPermissions = getPermissions(CacheType.PERMISSIONS_LOGIN_LIST, null);
         
-        if (!loginPermissions.isEmpty()) {
-            boolean isLoginRequired = checkPermissions(loginPermissions, path, exchange.getRequest().getMethod());
-            if (isLoginRequired) {
-                log.debug("路径 {} 需要登录验证", path);
-                return true;
-            }
-        }
-        
-        return false;
+        return true;
     }
 } 

@@ -72,7 +72,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
         // 如果已经被白名单处理，则跳过
-        return false;
+        return true;
     }
 
     @Override
