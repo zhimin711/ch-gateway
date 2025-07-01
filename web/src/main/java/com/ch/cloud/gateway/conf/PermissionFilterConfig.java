@@ -2,6 +2,7 @@ package com.ch.cloud.gateway.conf;
 
 import com.ch.cloud.gateway.filter.*;
 import com.ch.cloud.gateway.service.FeignClientHolder;
+import com.ch.cloud.gateway.utils.UserAuthUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;

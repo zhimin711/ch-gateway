@@ -4,6 +4,7 @@ import com.ch.Constants;
 import com.ch.StatusS;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.FeignClientHolder;
+import com.ch.cloud.gateway.utils.UserAuthUtils;
 import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.e.PubError;
@@ -18,7 +19,6 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.Collection;
 
@@ -38,12 +38,7 @@ public class RolePermissionFilter extends AbstractPermissionFilter {
 
     @Resource
     private RedissonClient redissonClient;
-
-    @PostConstruct
-    public void init() {
-        UserAuthUtils.setFeignClientHolder(feignClientHolder);
-        UserAuthUtils.setRedissonClient(redissonClient);
-    }
+    
 
     @Override
     protected int getFilterOrder() {

@@ -1,6 +1,7 @@
 package com.ch.cloud.gateway.filter;
 
 import com.ch.cloud.gateway.pojo.CacheType;
+import com.ch.cloud.gateway.utils.UserAuthUtils;
 import com.ch.cloud.upms.dto.AuthCodePermissionDTO;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.e.PubError;
@@ -13,11 +14,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.Resource;
 import java.util.Collection;
-import java.util.concurrent.Future;
 
 /**
  * 临时码校验过滤器 从URL参数获取token，校验通过则放行
@@ -29,12 +28,9 @@ import java.util.concurrent.Future;
 @Slf4j
 public class AuthCodePermissionFilter extends AbstractPermissionFilter {
     
-    @Resource
-    private RedissonClient redissonClient;
-    
     @Override
     protected int getFilterOrder() {
-        return -190; // 在Cookie和白名单之间
+        return -160; // 在Cookie和白名单之间
     }
     
     @Override
@@ -49,77 +45,66 @@ public class AuthCodePermissionFilter extends AbstractPermissionFilter {
             return UserAuthUtils.authError(exchange.getResponse(),
                     Result.error(PubError.INVALID, "缺少临时校验码token参数"));
         }
-        
-        return Mono.fromCallable(() -> {
-            Future<AuthCodePermissionDTO> future = feignClientHolder.authCodePermissions(tempToken);
-            AuthCodePermissionDTO dto = future.get();
+        // 校验临时码（通过feignClientHolder获取DTO并校验）
+        try {
+            AuthCodePermissionDTO dto = UserAuthUtils.getAuthCodeInfo(tempToken);
             if (dto == null) {
                 log.warn("临时码不存在: {}", tempToken);
-                throw new RuntimeException("临时码不存在");
+                return UserAuthUtils.authError(exchange.getResponse(),
+                        Result.error(PubError.INVALID, "临时码不存在"));
             }
             if (dto.getStatus() == null || dto.getStatus() != 1) {
                 log.warn("临时码状态无效: {}", tempToken);
-                throw new RuntimeException("临时码状态无效");
+                return UserAuthUtils.authError(exchange.getResponse(),
+                        Result.error(PubError.INVALID, "临时码状态无效"));
             }
             if (dto.getExpireTime() != null && dto.getExpireTime().before(new java.util.Date())) {
                 log.warn("临时码已过期: {}", tempToken);
-                throw new RuntimeException("临时码已过期");
+                return UserAuthUtils.authError(exchange.getResponse(),
+                        Result.error(PubError.INVALID, "临时码已过期"));
             }
             if (dto.getMaxUses() != null && dto.getUsedCount() != null && dto.getUsedCount() >= dto.getMaxUses()) {
                 log.warn("临时码已超出最大使用次数: {}", tempToken);
-                throw new RuntimeException("临时码已超出最大使用次数");
+                return UserAuthUtils.authError(exchange.getResponse(),
+                        Result.error(PubError.INVALID, "临时码已超出最大使用次数"));
             }
+            // 新增：校验权限
             if (dto.getPermissions() != null && !dto.getPermissions().isEmpty()) {
                 boolean allowed = checkPermissions(dto.getPermissions(), path, request.getMethod());
                 if (!allowed) {
                     log.warn("临时码权限不足: {}，path: {}", tempToken, path);
-                    throw new RuntimeException("临时码无权访问该接口");
+                    return UserAuthUtils.authError(exchange.getResponse(),
+                            Result.error(PubError.NOT_AUTH, "临时码无权访问该接口"));
                 }
             }
-            return dto;
-        })
-        .subscribeOn(Schedulers.boundedElastic())
-        .flatMap(dto -> {
+            // 其他权限校验可根据业务补充
             log.info("临时码校验通过，路径: {}，token: {}", path, tempToken);
             return chain.filter(exchange);
-        })
-        .onErrorResume(e -> {
-            String msg = e.getMessage();
-            if ("临时码不存在".equals(msg) || "临时码状态无效".equals(msg) || "临时码已过期".equals(msg) || "临时码已超出最大使用次数".equals(msg)) {
-                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, msg));
-            } else if ("临时码无权访问该接口".equals(msg)) {
-                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.NOT_AUTH, msg));
-            } else {
-                log.error("临时码校验异常", e);
-                return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.INVALID, "临时码校验异常"));
-            }
-        });
+        } catch (Exception e) {
+            log.error("临时码校验异常", e);
+            return UserAuthUtils.authError(exchange.getResponse(),
+                    Result.error(PubError.INVALID, "临时码校验异常"));
+        }
     }
     
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
-        // 如果URL中有token参数，则跳过后续过滤器（让当前过滤器处理）
-        String tempToken = exchange.getRequest().getQueryParams().getFirst("token");
-        if (CommonUtils.isNotEmpty(tempToken)) {
-            log.debug("检测到临时校验码，跳过后续过滤器");
-            return true;
-        }
+        // 不跳过任何请求，让当前过滤器处理临时码校验
         return false;
     }
     
     @Override
     protected boolean shouldProcess(ServerWebExchange exchange) {
+        // 只要URL参数中有token就处理，避免在shouldProcess中调用阻塞方法
+        String tempToken = exchange.getRequest().getQueryParams().getFirst("token");
         String path = exchange.getRequest().getURI().getPath();
         Collection<PermissionDto> permissions = getPermissions(CacheType.PERMISSIONS_TEMP_LIST, null);
-        
-        if (!permissions.isEmpty()) {
-            boolean isTempSupported = checkPermissions(permissions, path, exchange.getRequest().getMethod());
-            if (isTempSupported) {
-                log.debug("路径 {} 支持temporary auth code", path);
-                return true;
-            }
-        }
-        return false;
+
+//        if (!permissions.isEmpty()) {
+//            boolean isTempList = checkPermissions(permissions, path, exchange.getRequest().getMethod());
+//            return !isTempList;
+//        }
+        return CommonUtils.isNotEmpty(tempToken);
     }
     
 } 

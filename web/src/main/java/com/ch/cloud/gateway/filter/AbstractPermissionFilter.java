@@ -3,6 +3,7 @@ package com.ch.cloud.gateway.filter;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.upms.dto.PermissionDto;
+import com.ch.cloud.upms.enums.PermissionType;
 import com.ch.result.Result;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -34,13 +35,13 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered {
-
+    
     @Autowired
     protected FeignClientHolder feignClientHolder;
-
+    
     @Resource
     protected RedissonClient redissonClient;
-
+    
     /**
      * 获取过滤器优先级
      */
@@ -48,7 +49,7 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
     public int getOrder() {
         return getFilterOrder();
     }
-
+    
     /**
      * 子类实现具体的过滤器逻辑
      */
@@ -64,27 +65,27 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
         
         return chain.filter(exchange);
     }
-
+    
     /**
      * 子类需要实现的过滤器优先级
      */
     protected abstract int getFilterOrder();
-
+    
     /**
      * 子类需要实现的过滤器逻辑
      */
     protected abstract Mono<Void> doFilter(ServerWebExchange exchange, GatewayFilterChain chain);
-
+    
     /**
      * 子类需要实现的跳过条件
      */
     protected abstract boolean shouldSkip(ServerWebExchange exchange);
-
+    
     /**
      * 子类需要实现的处理条件
      */
     protected abstract boolean shouldProcess(ServerWebExchange exchange);
-
+    
     /**
      * 获取权限列表
      */
@@ -99,12 +100,17 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
                 return Lists.newArrayList();
             }
             Collection<PermissionDto> list = fetchPermissions(cacheType, roleId);
+            if (cacheType == CacheType.PERMISSIONS_AUTH_LIST) {
+                // 过滤掉权限码接口
+                list = list.stream().filter(dto -> PermissionType.from(dto.getType(), dto.getHidden())
+                        != PermissionType.AUTH_CODE_INTERFACE).collect(Collectors.toList());
+            }
             permissionsMap.fastPutIfAbsent(key, Lists.newArrayList(list), 30, TimeUnit.MINUTES);
             return list;
         }
         return permissions;
     }
-
+    
     /**
      * 从远程服务获取权限列表
      */
@@ -121,15 +127,19 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
                 case PERMISSIONS_COOKIE_LIST:
                     res = feignClientHolder.cookiePermissions().get();
                     break;
+                case PERMISSIONS_TEMP_LIST:
+                    res = feignClientHolder.tempPermissions().get();
+                    break;
                 default:
                     res = feignClientHolder.rolePermissions(roleId).get();
+                    break;
             }
         } catch (InterruptedException | ExecutionException e) {
             log.error("[用户权限]调用用户权限中心Feign失败", e);
         }
         return res.getRows();
     }
-
+    
     /**
      * 检查权限
      */
@@ -154,17 +164,5 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
         }
         return false;
     }
-
-    /**
-     * 路径匹配检查
-     */
-    protected boolean pathMatches(String[] patterns, String path) {
-        AntPathMatcher pathMatcher = new AntPathMatcher("/");
-        for (String pattern : patterns) {
-            if (pathMatcher.match(pattern, path)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    
 } 

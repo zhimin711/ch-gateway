@@ -36,10 +36,10 @@ public class FeignClientHolder {
     private SsoUserClient ssoUserClient;
     @Lazy
     @Autowired
-    private UpmsPermissionClient upmsPermissionClientService;
+    private UpmsPermissionClient upmsPermissionClient;
     @Lazy
     @Autowired
-    private UpmsRoleClient upmsRoleClientService;
+    private UpmsRoleClient upmsRoleClient;
     @Lazy
     @Autowired
     private UpmsAuthCodeClient upmsAuthCodeClient;
@@ -84,21 +84,25 @@ public class FeignClientHolder {
 
     @Async
     public Future<Result<PermissionDto>> whitelistPermissions() {
-        return new AsyncResult<>(upmsPermissionClientService.whitelist());
+        return new AsyncResult<>(upmsPermissionClient.whitelist());
     }
 
     @Async
     public Future<Result<PermissionDto>> hiddenPermissions() {
-        return new AsyncResult<>(upmsPermissionClientService.hidden());
+        return new AsyncResult<>(upmsPermissionClient.hidden());
     }
 
     @Async
     public Future<Result<PermissionDto>> cookiePermissions() {
-        return new AsyncResult<>(upmsPermissionClientService.cookie());
+        return new AsyncResult<>(upmsPermissionClient.cookie());
     }
 
     @Async
     public Future<Result<PermissionDto>> rolePermissions(Long roleId) {
-        return new AsyncResult<>(upmsRoleClientService.findPermissionsByRoleId(roleId, null));
+        return new AsyncResult<>(upmsRoleClient.findPermissionsByRoleId(roleId, null));
+    }
+    
+    public Future<Result<PermissionDto>> tempPermissions() {
+        return new AsyncResult<>(upmsPermissionClient.authCode());
     }
 }

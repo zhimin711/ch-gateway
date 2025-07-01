@@ -37,23 +37,23 @@ public class WhiteListPermissionFilter extends AbstractPermissionFilter {
 
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
-        // 白名单过滤器不跳过任何请求
-        return false;
-    }
-
-    @Override
-    protected boolean shouldProcess(ServerWebExchange exchange) {
+        // 如果路径在白名单中，则跳过后续过滤器
         String path = exchange.getRequest().getURI().getPath();
         Collection<PermissionDto> whiteList = getPermissions(CacheType.PERMISSIONS_WHITE_LIST, null);
         
         if (!whiteList.isEmpty()) {
             boolean isWhiteList = checkPermissions(whiteList, path, exchange.getRequest().getMethod());
             if (isWhiteList) {
-                log.debug("路径 {} 在白名单中，直接放行", path);
+                log.debug("路径 {} 在白名单中，跳过后续过滤器", path);
                 return true;
             }
         }
-        
+        return false;
+    }
+
+    @Override
+    protected boolean shouldProcess(ServerWebExchange exchange) {
+        // 白名单处理已在shouldSkip中完成，这里不需要再处理
         return false;
     }
 } 

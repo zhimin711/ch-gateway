@@ -1,14 +1,16 @@
-package com.ch.cloud.gateway.filter;
+package com.ch.cloud.gateway.utils;
 
 import com.alibaba.fastjson2.JSON;
 import com.ch.Constants;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.sso.pojo.UserInfo;
+import com.ch.cloud.upms.dto.AuthCodePermissionDTO;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import com.ch.utils.EncryptUtils;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
@@ -37,17 +39,11 @@ import java.util.concurrent.Future;
 @Slf4j
 public class UserAuthUtils {
     
+    @Setter
     private static FeignClientHolder feignClientHolder;
     
+    @Setter
     private static RedissonClient redissonClient;
-    
-    public static void setFeignClientHolder(FeignClientHolder holder) {
-        feignClientHolder = holder;
-    }
-    
-    public static void setRedissonClient(RedissonClient client) {
-        redissonClient = client;
-    }
     
     /**
      * 获取用户信息
@@ -90,6 +86,21 @@ public class UserAuthUtils {
             }
         }
         return userResult;
+    }
+    
+    /**
+     * 获取授权码信息
+     */
+    public static AuthCodePermissionDTO getAuthCodeInfo(String code) {
+        
+        try {
+            Future<AuthCodePermissionDTO> future = feignClientHolder.authCodePermissions(code);
+            return future.get();
+        } catch (Exception e) {
+            log.error("[用户权限系统]调用授权码鉴权Feign失败", e);
+            
+        }
+        return null;
     }
     
     /**
