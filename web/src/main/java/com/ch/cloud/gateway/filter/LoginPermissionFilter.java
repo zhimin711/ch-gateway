@@ -61,7 +61,7 @@ public class LoginPermissionFilter extends AbstractPermissionFilter {
         
         // 验证token并获取用户信息
         Result<UserInfo> userResult = UserAuthUtils.getUserInfo(token);
-        if (CommonUtils.isNotEmpty(userResult.getCode()) && !userResult.isSuccess()) {
+        if (!userResult.isSuccess()) {
             PubError err = PubError.fromCode(userResult.getCode());
             if (err == PubError.EXPIRED) {
                 UserAuthUtils.refreshToken(resp, StatusS.ENABLED);

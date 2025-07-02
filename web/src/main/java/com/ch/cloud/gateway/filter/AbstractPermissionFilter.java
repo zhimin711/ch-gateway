@@ -73,7 +73,7 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
         // 不跳过任何请求，让当前过滤器处理临时码校验
         String skipAfter = exchange.getRequest().getHeaders().getFirst(GatewayConstants.FILTER_HEADER_SKIP_AFTER);
         if (CommonUtils.isEquals(skipAfter, "true")) {
-            log.debug("上层业务已标记校验跳过后续校验: {}", getClass().getSimpleName());
+            log.debug("{} 上层过滤器已标记校验跳过后面校验", getClass().getSimpleName());
             return true;
         }
         return false;

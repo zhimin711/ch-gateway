@@ -49,6 +49,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
         
         // 从Cookie中获取token
         String cookieToken = getCookieToken(exchange.getRequest());
+//        log.debug("从Cookie中获取到的token: {}", cookieToken);
         if (CommonUtils.isNotEmpty(cookieToken)) {
             // 检查并刷新Cookie
             if (cookieRefreshService.needRefreshCookie(cookieToken)) {
@@ -99,6 +100,11 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
         HttpCookie cookie = cookies.getFirst(cookieConfig.getTokenName());
         if (cookie == null) {
             return null;
+        }
+        if(cookie.getValue().startsWith("Bearer ")){
+            return cookie.getValue().substring(7);
+        } else if (cookie.getValue().startsWith("Bearer%20")) {
+            return cookie.getValue().substring(9);
         }
         return cookie.getValue();
     }

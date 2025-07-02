@@ -64,13 +64,13 @@ public class UserAuthUtils {
                 userResult.setMessage("[单点登录]Feign调用登录鉴权失败");
             }
             
-            if (CommonUtils.isNotEmpty(userResult.getCode()) && !userResult.isSuccess()) {
+            if (!userResult.isSuccess()) {
                 return userResult;
             }
             
             UserInfo user = userResult.get();
             RBucket<String> tokenBucket = redissonClient.getBucket(
-                    CacheType.GATEWAY_USER.getKey(userResult.get().getUsername()));
+                    CacheType.GATEWAY_USER.getKey(user.getUsername()));
             if (tokenBucket.isExists()) {
                 redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
             }
@@ -127,7 +127,7 @@ public class UserAuthUtils {
      * 认证错误输出
      */
     public static Mono<Void> authError(ServerHttpResponse resp, Result<?> result) {
-        resp.setStatusCode(HttpStatus.UNAUTHORIZED);
+//        resp.setStatusCode(HttpStatus.UNAUTHORIZED);
         resp.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
         String returnStr = JSON.toJSONString(result);
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
