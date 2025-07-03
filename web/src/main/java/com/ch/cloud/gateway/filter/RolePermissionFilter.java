@@ -1,26 +1,19 @@
 package com.ch.cloud.gateway.filter;
 
 import com.ch.Constants;
-import com.ch.StatusS;
 import com.ch.cloud.gateway.pojo.CacheType;
-import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.gateway.utils.UserAuthUtils;
 import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.e.Error;
 import com.ch.e.PubError;
 import com.ch.result.Result;
-import com.ch.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.Resource;
 import java.util.Collection;
 
 /**
@@ -32,13 +25,6 @@ import java.util.Collection;
 @Configuration
 @Slf4j
 public class RolePermissionFilter extends AbstractPermissionFilter {
-    
-    @Autowired
-    private FeignClientHolder feignClientHolder;
-    
-    @Resource
-    private RedissonClient redissonClient;
-    
     
     @Override
     protected int getFilterOrder() {
@@ -77,7 +63,7 @@ public class RolePermissionFilter extends AbstractPermissionFilter {
     
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
-        // 如果已经被白名单或登录权限处理，则跳过
+        // 如果已经被白名单或授权码处理，则跳过
         return true;
     }
     

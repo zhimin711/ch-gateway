@@ -84,7 +84,7 @@ public class AuthCodePermissionFilter extends AbstractPermissionFilter {
     
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
-        // 默认可以跳过任何请求
+        // 如果已经被白名单，则跳过
         return true;
     }
     

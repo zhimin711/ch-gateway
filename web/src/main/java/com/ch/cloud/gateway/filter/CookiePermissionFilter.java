@@ -72,7 +72,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
 
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
-        // 如果已经被白名单处理，则跳过
+        // 如果已经被白名单或授权码处理，则跳过
         return true;
     }
 
@@ -80,9 +80,9 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
     protected boolean shouldProcess(ServerWebExchange exchange) {
         
         String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
-        // 如果有token，则跳过
+        // 如果Header有token，则跳过
         if (CommonUtils.isNotEmpty(token)) {
-            log.debug("请求Header已包含token，路径: {}", exchange.getRequest().getURI().getPath());
+//            log.debug("请求Header已包含token，路径: {}", exchange.getRequest().getURI().getPath());
             return false;
         }
         String path = exchange.getRequest().getURI().getPath();
@@ -91,7 +91,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
         if (!cookiePermissions.isEmpty()) {
             boolean isCookieSupported = checkPermissions(cookiePermissions, path, exchange.getRequest().getMethod());
             if (isCookieSupported) {
-                log.debug("路径 {} 支持Cookie token", path);
+                log.debug("路径 {} 支持Cookie token校验", path);
                 return true;
             }
         }

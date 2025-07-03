@@ -12,6 +12,9 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Cookie刷新服务
@@ -65,7 +68,9 @@ public class CookieRefreshService {
             if (needRefresh && cookieConfig.isEnableLog()) {
                 log.debug("Cookie即将过期，剩余时间: {}秒", timeToExpire / 1000);
             }
-            
+            // 更新Redis中的用户信息 续期30分钟
+            Duration duration = Duration.of(currentTime + cookieConfig.getMaxAge(), ChronoUnit.MILLIS);
+            userBucket.expire(duration);
             return needRefresh;
             
         } catch (Exception e) {

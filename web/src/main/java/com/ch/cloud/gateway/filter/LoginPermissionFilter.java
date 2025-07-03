@@ -78,7 +78,7 @@ public class LoginPermissionFilter extends AbstractPermissionFilter {
 
     @Override
     protected boolean shouldSkip(ServerWebExchange exchange) {
-        // 如果已经被白名单处理，则跳过
+        // 如果已经被白名单或授权码处理，则跳过
         return true;
     }
 
