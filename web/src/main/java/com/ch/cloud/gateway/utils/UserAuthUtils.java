@@ -8,7 +8,6 @@ import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.dto.AuthCodePermissionDTO;
 import com.ch.e.PubError;
 import com.ch.result.Result;
-import com.ch.utils.CommonUtils;
 import com.ch.utils.EncryptUtils;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +16,6 @@ import org.redisson.api.RedissonClient;
 import org.redisson.codec.JsonJacksonCodec;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
@@ -50,7 +48,7 @@ public class UserAuthUtils {
      */
     public static Result<UserInfo> getUserInfo(String token) {
         String md5 = EncryptUtils.md5(token);
-        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5),
+        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(md5),
                 JsonJacksonCodec.INSTANCE);
         Result<UserInfo> userResult = Result.failed();
         
@@ -70,9 +68,9 @@ public class UserAuthUtils {
             
             UserInfo user = userResult.get();
             RBucket<String> tokenBucket = redissonClient.getBucket(
-                    CacheType.GATEWAY_USER.getKey(user.getUsername()));
+                    CacheType.GATEWAY_USER.key(user.getUsername()));
             if (tokenBucket.isExists()) {
-                redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(tokenBucket.get())).delete();
+                redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(tokenBucket.get())).delete();
             }
             tokenBucket.set(md5);
             Duration duration = Duration.of(user.getExpireAt() - System.currentTimeMillis(), ChronoUnit.MILLIS);

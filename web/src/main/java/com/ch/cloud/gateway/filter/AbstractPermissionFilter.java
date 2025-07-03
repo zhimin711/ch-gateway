@@ -112,7 +112,7 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
      */
     protected Collection<PermissionDto> getPermissions(CacheType cacheType, Long roleId) {
         RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(
-                CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
+                CacheType.PERMISSIONS_MAP.key(), JsonJacksonCodec.INSTANCE);
         String key = roleId != null ? roleId.toString() : cacheType.getCode();
         List<PermissionDto> permissions = permissionsMap.get(key);
         

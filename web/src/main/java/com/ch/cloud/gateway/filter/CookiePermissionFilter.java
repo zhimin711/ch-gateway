@@ -62,7 +62,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
                     .header(Constants.X_TOKEN, cookieToken)
                     .build();
             ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
-            log.debug("从Cookie中获取到token，路径: {}", path);
+            log.debug("从Cookie中获取到token: {}，路径: {}", cookieToken, path);
             return chain.filter(mutableExchange);
         }
         
@@ -78,6 +78,13 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
 
     @Override
     protected boolean shouldProcess(ServerWebExchange exchange) {
+        
+        String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
+        // 如果有token，则跳过
+        if (CommonUtils.isNotEmpty(token)) {
+            log.debug("请求Header已包含token，路径: {}", exchange.getRequest().getURI().getPath());
+            return false;
+        }
         String path = exchange.getRequest().getURI().getPath();
         Collection<PermissionDto> cookiePermissions = getPermissions(CacheType.PERMISSIONS_COOKIE_LIST, null);
         

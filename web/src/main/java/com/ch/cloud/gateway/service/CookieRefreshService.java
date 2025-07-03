@@ -2,6 +2,7 @@ package com.ch.cloud.gateway.service;
 
 import com.ch.cloud.gateway.conf.CookieConfig;
 import com.ch.cloud.gateway.pojo.CacheType;
+import com.ch.cloud.sso.pojo.UserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.codec.JsonJacksonCodec;
@@ -42,45 +43,30 @@ public class CookieRefreshService {
         try {
             // 从Redis中获取用户信息
             String md5 = com.ch.utils.EncryptUtils.md5(token);
-            RBucket<Object> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5),
+            RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(md5),
                     JsonJacksonCodec.INSTANCE);
-            
             if (!userBucket.isExists()) {
                 return false;
             }
             
-            Object user = userBucket.get();
+            UserInfo user = userBucket.get();
             if (user == null) {
                 return false;
             }
             
-            // 通过反射获取过期时间
-            try {
-                java.lang.reflect.Method getExpireAtMethod = user.getClass().getMethod("getExpireAt");
-                Object expireAt = getExpireAtMethod.invoke(user);
-                
-                if (expireAt == null) {
-                    return false;
-                }
-                
-                // 计算剩余时间
-                long currentTime = System.currentTimeMillis();
-                long expireTime = (Long) expireAt;
-                long timeToExpire = expireTime - currentTime;
-                
-                // 如果token在阈值时间内过期，则需要刷新
-                boolean needRefresh = timeToExpire <= cookieConfig.getRefreshThreshold() * 1000;
-                
-                if (needRefresh && cookieConfig.isEnableLog()) {
-                    log.debug("Cookie即将过期，剩余时间: {}秒", timeToExpire / 1000);
-                }
-                
-                return needRefresh;
-                
-            } catch (Exception e) {
-                log.error("获取用户过期时间失败", e);
-                return false;
+            // 计算剩余时间
+            long currentTime = System.currentTimeMillis();
+            long expireTime = user.getExpireAt();
+            long timeToExpire = expireTime - currentTime;
+            
+            // 如果token在阈值时间内过期，则需要刷新
+            boolean needRefresh = timeToExpire <= cookieConfig.getRefreshThreshold() * 1000L;
+            
+            if (needRefresh && cookieConfig.isEnableLog()) {
+                log.debug("Cookie即将过期，剩余时间: {}秒", timeToExpire / 1000);
             }
+            
+            return needRefresh;
             
         } catch (Exception e) {
             log.error("检查Cookie刷新状态时发生错误", e);

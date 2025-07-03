@@ -42,6 +42,6 @@ public class LoginTests {
 
     @Test
     public void clean() {
-        System.out.println(CacheType.GATEWAY_TOKEN.getKey("test","1"));
+        System.out.println(CacheType.GATEWAY_TOKEN.key("test","1"));
     }
 }

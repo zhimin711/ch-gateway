@@ -54,7 +54,7 @@ public class NotifyCleanReceiver implements RocketMQListener<KeyValue> {
      */
     private void cleanUsers(KeyValue keyValue) {
         String md5 = EncryptUtils.md5(keyValue.getValue());
-        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.getKey(md5), JsonJacksonCodec.INSTANCE);
+        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(md5), JsonJacksonCodec.INSTANCE);
         if (userBucket.isExists()) {
             userBucket.delete();
         }
@@ -66,7 +66,7 @@ public class NotifyCleanReceiver implements RocketMQListener<KeyValue> {
      * @param keyValue 权限（角色）
      */
     private void cleanPermissions(KeyValue keyValue) {
-        RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.getKey(), JsonJacksonCodec.INSTANCE);
+        RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.key(), JsonJacksonCodec.INSTANCE);
         if (permissionsMap.containsKey(keyValue.getValue())) {
             permissionsMap.remove(keyValue.getValue());
         } else {
