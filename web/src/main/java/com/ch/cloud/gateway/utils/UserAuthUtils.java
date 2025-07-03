@@ -96,7 +96,6 @@ public class UserAuthUtils {
             return future.get();
         } catch (Exception e) {
             log.error("[用户权限系统]调用授权码鉴权Feign失败", e);
-            
         }
         return null;
     }
@@ -131,4 +130,14 @@ public class UserAuthUtils {
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
         return resp.writeWith(Flux.just(buffer));
     }
-} 
+    
+    public static Boolean renewToken(String token) {
+        try {
+            Future<Boolean> booleanFuture = feignClientHolder.tokenRenew(token);
+            return booleanFuture.get();
+        } catch (Exception e) {
+            log.error("[单点登录系统]调用Token续期失败", e);
+        }
+        return false;
+    }
+}

@@ -76,10 +76,10 @@ public class FeignClientHolder {
     }
     
     @Async
-    public Future<UserInfo> userInfo(String token) {
-        log.info("开始使用 userInfo ...");
-        Result<UserInfo> s = ssoUserClient.info(token);
-        return new AsyncResult<>(s.get());
+    public Future<Boolean> tokenRenew(String token) {
+        log.info("开始使用 tokenRenew ...");
+        Result<Boolean> renewResult = ssoLoginClient.renew(token);
+        return new AsyncResult<>(renewResult.get());
     }
     
     @Async
