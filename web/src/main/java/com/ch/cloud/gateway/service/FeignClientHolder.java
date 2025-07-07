@@ -85,6 +85,9 @@ public class FeignClientHolder {
     @Async
     public Future<AuthCodePermissionDTO> authCodePermissions(String code) {
         Result<AuthCodePermissionDTO> res = upmsAuthCodeClient.getPermission(code);
+        if (!res.isSuccess()) {
+            log.info("授权码鉴权失败{}", res.getMessage());
+        }
         return new AsyncResult<>(res.get());
     }
     
