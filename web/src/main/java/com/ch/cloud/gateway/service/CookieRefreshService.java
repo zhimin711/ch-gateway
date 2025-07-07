@@ -69,11 +69,11 @@ public class CookieRefreshService {
             if (needRefresh && cookieConfig.isEnableLog()) {
                 log.debug("Cookie即将过期，剩余时间: {}秒", timeToExpire / 1000);
             }
-            if (UserAuthUtils.renewToken(token)) {
+            if (needRefresh && UserAuthUtils.renewToken(token)) {
                 // 更新Redis中的用户信息 续期30分钟
                 Duration duration = Duration.of(currentTime + cookieConfig.getMaxAge(), ChronoUnit.MILLIS);
                 userBucket.expire(duration);
-                return needRefresh;
+                return true;
             }
         } catch (Exception e) {
             log.error("检查Cookie刷新状态时发生错误", e);

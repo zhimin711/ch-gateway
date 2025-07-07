@@ -177,7 +177,7 @@ public abstract class AbstractPermissionFilter implements GlobalFilter, Ordered 
             boolean ok = pathMatcher.match(url, path);
             if (ok) {
                 for (PermissionDto dto : permissionMap.get(url)) {
-                    if (dto.getMethod() == null || method.matches(dto.getMethod())) {
+                    if (CommonUtils.isEmpty(dto.getMethod()) || method.matches(dto.getMethod())) {
                         return true;
                     }
                 }
