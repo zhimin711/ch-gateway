@@ -52,7 +52,7 @@ public class RolePermissionFilter extends AbstractPermissionFilter {
         if (!hasPermission) {
             log.warn("用户 {} 没有访问路径 {} 的权限", user.getUsername(), path);
             return UserAuthUtils.authError(exchange.getResponse(),
-                    Result.error(Error.buildWithArgs(PubError.NOT_AUTH, user.getRoleId(), path)));
+                    Result.error(Error.buildWithArgs(PubError.NOT_AUTH, "角色ID:" + user.getRoleId(), path)));
         }
         
         log.debug("角色权限验证通过，用户: {}, 角色: {}", user.getUsername(), user.getRoleId());
@@ -69,10 +69,10 @@ public class RolePermissionFilter extends AbstractPermissionFilter {
     
     @Override
     protected boolean shouldProcess(ServerWebExchange exchange) {
-//        String path = exchange.getRequest().getURI().getPath();
+        //        String path = exchange.getRequest().getURI().getPath();
         
         // 其他路径都需要角色权限验证
-//        log.debug("路径 {} 需要角色权限验证", path);
+        //        log.debug("路径 {} 需要角色权限验证", path);
         return true;
     }
 } 
