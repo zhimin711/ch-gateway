@@ -27,7 +27,7 @@
         <flatten-maven-plugin.version>1.1.0</flatten-maven-plugin.version>
         
         <ch.cloud.version>2.0.0-SNAPSHOT</ch.cloud.version>
-        <ch.sso.version>1.0.0-SNAPSHOT</ch.sso.version>
+        <ch.sso.version>2.1.0-SNAPSHOT</ch.sso.version>
         <ch.upms.version>1.1.1-SNAPSHOT</ch.upms.version>
     </properties>
 
