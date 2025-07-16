@@ -1,7 +1,7 @@
 package com.ch.cloud.gateway.pojo;
 
 import com.ch.Separator;
-import com.ch.utils.StringUtilsV2;
+import com.ch.core.utils.StrUtil;
 import lombok.Getter;
 
 /**
@@ -20,21 +20,21 @@ public enum CacheType {
     PERMISSIONS_TEMP_LIST("gateway:permission:temp", "temp"),
     GATEWAY_TOKEN("gateway:token", "token"),
     GATEWAY_USER("gateway:user", "user");
-    
+
     private final String key;
-    
+
     private final String code;
-    
+
     CacheType(String key, String code) {
         this.key = key;
         this.code = code;
     }
-    
+
     public String key(String... args) {
         if (args == null || args.length == 0) {
             return key;
         }
-        return key + Separator.SECURITY + StringUtilsV2.linkStr(Separator.SECURITY, args);
+        return key + Separator.SECURITY + StrUtil.linkStr(Separator.SECURITY, args);
     }
-    
+
 }
