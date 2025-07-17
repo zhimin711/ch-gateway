@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 用户认证工具类 提供通用的用户信息获取和错误处理功能
@@ -67,14 +68,14 @@ public class UserAuthUtils {
             }
             
             UserInfo user = userResult.get();
-            RBucket<String> tokenBucket = redissonClient.getBucket(
-                    CacheType.GATEWAY_USER.key(user.getUsername()));
+            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.key(user.getUsername()));
             if (tokenBucket.isExists()) {
                 redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(tokenBucket.get())).delete();
             }
             tokenBucket.set(md5);
             Duration duration = Duration.of(user.getExpireAt() - System.currentTimeMillis(), ChronoUnit.MILLIS);
-            userBucket.set(user, duration);
+            //            userBucket.set(user, duration);
+            userBucket.set(user, duration.getSeconds(), TimeUnit.SECONDS);
         } else {
             try {
                 return Result.success(userBucket.get());
@@ -124,7 +125,7 @@ public class UserAuthUtils {
      * 认证错误输出
      */
     public static Mono<Void> authError(ServerHttpResponse resp, Result<?> result) {
-//        resp.setStatusCode(HttpStatus.UNAUTHORIZED);
+        //        resp.setStatusCode(HttpStatus.UNAUTHORIZED);
         resp.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
         String returnStr = JSON.toJSONString(result);
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
