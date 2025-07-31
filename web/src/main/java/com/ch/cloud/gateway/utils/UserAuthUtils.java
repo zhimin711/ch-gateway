@@ -6,6 +6,7 @@ import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.FeignClientHolder;
 import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.dto.AuthCodePermissionDTO;
+import com.ch.cloud.upms.dto.RoleDto;
 import com.ch.e.PubError;
 import com.ch.result.Result;
 import com.ch.utils.EncryptUtils;
@@ -37,13 +38,13 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class UserAuthUtils {
-    
+
     @Setter
     private static FeignClientHolder feignClientHolder;
-    
+
     @Setter
     private static RedissonClient redissonClient;
-    
+
     /**
      * 获取用户信息
      */
@@ -52,7 +53,7 @@ public class UserAuthUtils {
         RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(md5),
                 JsonJacksonCodec.INSTANCE);
         Result<UserInfo> userResult = Result.failed();
-        
+
         if (!userBucket.isExists()) {
             try {
                 Future<Result<UserInfo>> f = feignClientHolder.tokenInfo(token);
@@ -62,11 +63,11 @@ public class UserAuthUtils {
                 userResult.setCode("100");
                 userResult.setMessage("[单点登录]Feign调用登录鉴权失败");
             }
-            
+
             if (!userResult.isSuccess()) {
                 return userResult;
             }
-            
+
             UserInfo user = userResult.get();
             RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.key(user.getUsername()));
             if (tokenBucket.isExists()) {
@@ -86,12 +87,12 @@ public class UserAuthUtils {
         }
         return userResult;
     }
-    
+
     /**
      * 获取授权码信息
      */
     public static AuthCodePermissionDTO getAuthCodeInfo(String code) {
-        
+
         try {
             Future<AuthCodePermissionDTO> future = feignClientHolder.authCodePermissions(code);
             return future.get();
@@ -100,7 +101,7 @@ public class UserAuthUtils {
         }
         return null;
     }
-    
+
     /**
      * 将用户信息添加到请求头
      */
@@ -113,14 +114,14 @@ public class UserAuthUtils {
         ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
         return chain.filter(mutableExchange);
     }
-    
+
     /**
      * 刷新token
      */
     public static void refreshToken(ServerHttpResponse originalResponse, String refreshToken) {
         originalResponse.getHeaders().add(Constants.X_REFRESH_TOKEN, refreshToken);
     }
-    
+
     /**
      * 认证错误输出
      */
@@ -131,7 +132,7 @@ public class UserAuthUtils {
         DataBuffer buffer = resp.bufferFactory().wrap(returnStr.getBytes(StandardCharsets.UTF_8));
         return resp.writeWith(Flux.just(buffer));
     }
-    
+
     public static Boolean renewToken(String token) {
         try {
             Future<Boolean> booleanFuture = feignClientHolder.tokenRenew(token);
@@ -140,5 +141,18 @@ public class UserAuthUtils {
             log.error("[单点登录系统]调用Token续期失败", e);
         }
         return false;
+    }
+
+    public static RoleDto getRoleInfo(String username, Long roleId) {
+        try {
+            Future<RoleDto> future = feignClientHolder.userRole(username, roleId);
+            return future.get();
+        } catch (Exception e) {
+            log.error("[用户权限系统]调用角色信息失败", e);
+        }
+        RoleDto roleDto = new RoleDto();
+        roleDto.setId(-1L);
+        roleDto.setName(roleId + "");
+        return roleDto;
     }
 }

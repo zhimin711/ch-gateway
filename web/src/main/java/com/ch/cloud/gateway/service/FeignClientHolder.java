@@ -6,8 +6,10 @@ import com.ch.cloud.sso.pojo.UserInfo;
 import com.ch.cloud.upms.client.UpmsAuthCodeClient;
 import com.ch.cloud.upms.client.UpmsPermissionClient;
 import com.ch.cloud.upms.client.UpmsRoleClient;
+import com.ch.cloud.upms.client.UpmsUserClient;
 import com.ch.cloud.upms.dto.AuthCodePermissionDTO;
 import com.ch.cloud.upms.dto.PermissionDto;
+import com.ch.cloud.upms.dto.RoleDto;
 import com.ch.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,27 +29,31 @@ import java.util.concurrent.Future;
 @Slf4j
 @Component
 public class FeignClientHolder {
-    
+
     @Lazy // 重点：这里必须使用@Lazy(异步线程)
     @Autowired
     private SsoLoginClient ssoLoginClient;
-    
+
     @Lazy // 重点：这里必须使用@Lazy(异步线程)
     @Autowired
     private SsoUserClient ssoUserClient;
-    
+
     @Lazy
     @Autowired
     private UpmsPermissionClient upmsPermissionClient;
-    
+
     @Lazy
     @Autowired
     private UpmsRoleClient upmsRoleClient;
-    
+
+    @Lazy
+    @Autowired
+    private UpmsUserClient upmsUserClient;
+
     @Lazy
     @Autowired
     private UpmsAuthCodeClient upmsAuthCodeClient;
-    
+
     /**
      * 这里必须在异步线程中执行，执行结果返回Future
      *
@@ -74,14 +80,14 @@ public class FeignClientHolder {
         }
         return new AsyncResult<>(r1);
     }
-    
+
     @Async
     public Future<Boolean> tokenRenew(String token) {
         log.info("开始使用 tokenRenew ...");
         Result<Boolean> renewResult = ssoLoginClient.renew(token);
         return new AsyncResult<>(renewResult.get());
     }
-    
+
     @Async
     public Future<AuthCodePermissionDTO> authCodePermissions(String code) {
         Result<AuthCodePermissionDTO> res = upmsAuthCodeClient.getPermission(code);
@@ -90,29 +96,40 @@ public class FeignClientHolder {
         }
         return new AsyncResult<>(res.get());
     }
-    
+
     @Async
     public Future<Result<PermissionDto>> whitelistPermissions() {
         return new AsyncResult<>(upmsPermissionClient.whitelist());
     }
-    
+
     @Async
     public Future<Result<PermissionDto>> hiddenPermissions() {
         return new AsyncResult<>(upmsPermissionClient.hidden());
     }
-    
+
     @Async
     public Future<Result<PermissionDto>> cookiePermissions() {
         return new AsyncResult<>(upmsPermissionClient.cookie());
     }
-    
+
     @Async
     public Future<Result<PermissionDto>> rolePermissions(Long roleId) {
         return new AsyncResult<>(upmsRoleClient.findPermissionsByRoleId(roleId, null));
     }
-    
+
     @Async
     public Future<Result<PermissionDto>> tempPermissions() {
         return new AsyncResult<>(upmsPermissionClient.authCode());
+    }
+
+    @Async
+    public Future<RoleDto> userRole(String username, Long roleId) {
+        Result<RoleDto> result = upmsUserClient.findRolesByUsername(username);
+        if (!result.isSuccess()) {
+            log.error("获取用户角色失败{}", result.getMessage());
+            return new AsyncResult<>(null);
+        }
+        RoleDto roleDto = result.getRows().stream().filter(role -> role.getId().equals(roleId)).findFirst().orElse(null);
+        return new AsyncResult<>(roleDto);
     }
 }
