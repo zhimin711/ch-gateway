@@ -14,6 +14,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import org.redisson.codec.JsonJacksonCodec;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -69,7 +70,8 @@ public class UserAuthUtils {
             }
 
             UserInfo user = userResult.get();
-            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.key(user.getUsername()));
+            RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.key(user.getUsername()),
+                    StringCodec.INSTANCE);
             if (tokenBucket.isExists()) {
                 redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(tokenBucket.get())).delete();
             }
