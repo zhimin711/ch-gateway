@@ -33,7 +33,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
 
     @Autowired
     private CookieRefreshService cookieRefreshService;
-    
+
     @Autowired
     private CookieConfig cookieConfig;
 
@@ -46,17 +46,28 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
     protected Mono<Void> doFilter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
         log.debug("Cookie权限检查: {}", path);
-        
+
         // 从Cookie中获取token
-        String cookieToken = getCookieToken(exchange.getRequest());
+        String cookieToken = getCookieToken(exchange.getRequest(), null);
 //        log.debug("从Cookie中获取到的token: {}", cookieToken);
         if (CommonUtils.isNotEmpty(cookieToken)) {
             // 检查并刷新Cookie
             if (cookieRefreshService.needRefreshCookie(cookieToken)) {
-                log.debug("Cookie即将过期，开始刷新，路径: {}", path);
+                log.debug("Cookie Token 即将过期，开始刷新，当前路径: {}", path);
                 cookieRefreshService.refreshCookie(exchange.getResponse(), cookieToken);
+            } else {
+                log.debug("Cookie Token 已过期，开始刷新，当前路径: {}", path);
+                String refreshToken = getCookieToken(exchange.getRequest(), Constants.X_REFRESH_TOKEN);
+                String newToken = cookieRefreshService.refreshToken(cookieToken, refreshToken);
+
+                if (CommonUtils.isNotEmpty(newToken)) {
+                    cookieRefreshService.refreshCookie(exchange.getResponse(), newToken);
+                } else {
+                    cookieRefreshService.clearCookie(exchange.getResponse());
+                }
+
             }
-            
+
             // 将Cookie token添加到请求头中，供后续过滤器使用
             ServerHttpRequest mutableReq = exchange.getRequest().mutate()
                     .header(Constants.X_TOKEN, cookieToken)
@@ -65,9 +76,27 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
             log.debug("从Cookie中获取到token: {}，路径: {}", cookieToken, path);
             return chain.filter(mutableExchange);
         }
-        
+
         // 没有Cookie token，继续下一个过滤器
         return chain.filter(exchange);
+    }
+
+    /**
+     * 从Cookie中获取token
+     */
+    private String getCookieToken(ServerHttpRequest request, String cookieName) {
+        String name = cookieName == null ? cookieConfig.getTokenName() : cookieName;
+        MultiValueMap<String, HttpCookie> cookies = request.getCookies();
+        HttpCookie cookie = cookies.getFirst(name);
+        if (cookie == null) {
+            return null;
+        }
+        if (cookie.getValue().startsWith("Bearer ")) {
+            return cookie.getValue().substring(7);
+        } else if (cookie.getValue().startsWith("Bearer%20")) {
+            return cookie.getValue().substring(9);
+        }
+        return cookie.getValue();
     }
 
     @Override
@@ -78,7 +107,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
 
     @Override
     protected boolean shouldProcess(ServerWebExchange exchange) {
-        
+
         String token = exchange.getRequest().getHeaders().getFirst(Constants.X_TOKEN);
         // 如果Header有token，则跳过
         if (CommonUtils.isNotEmpty(token)) {
@@ -87,7 +116,7 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
         }
         String path = exchange.getRequest().getURI().getPath();
         Collection<PermissionDto> cookiePermissions = getPermissions(CacheType.PERMISSIONS_COOKIE_LIST, null);
-        
+
         if (!cookiePermissions.isEmpty()) {
             boolean isCookieSupported = checkPermissions(cookiePermissions, path, exchange.getRequest().getMethod());
             if (isCookieSupported) {
@@ -95,24 +124,9 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
                 return true;
             }
         }
-        
+
         return false;
     }
 
-    /**
-     * 从Cookie中获取token
-     */
-    private String getCookieToken(ServerHttpRequest request) {
-        MultiValueMap<String, HttpCookie> cookies = request.getCookies();
-        HttpCookie cookie = cookies.getFirst(cookieConfig.getTokenName());
-        if (cookie == null) {
-            return null;
-        }
-        if(cookie.getValue().startsWith("Bearer ")){
-            return cookie.getValue().substring(7);
-        } else if (cookie.getValue().startsWith("Bearer%20")) {
-            return cookie.getValue().substring(9);
-        }
-        return cookie.getValue();
-    }
-} 
+
+}

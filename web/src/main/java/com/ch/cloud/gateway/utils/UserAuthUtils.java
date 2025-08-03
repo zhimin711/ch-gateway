@@ -145,6 +145,16 @@ public class UserAuthUtils {
         return false;
     }
 
+    public static String refreshToken(String token,String refreshToken) {
+        try {
+            Future<String> future = feignClientHolder.refreshToken(token,refreshToken);
+            return future.get();
+        } catch (Exception e) {
+            log.error("[单点登录系统]刷新Token", e);
+        }
+        return null;
+    }
+
     public static RoleDto getRoleInfo(String username, Long roleId) {
         try {
             Future<RoleDto> future = feignClientHolder.userRole(username, roleId);

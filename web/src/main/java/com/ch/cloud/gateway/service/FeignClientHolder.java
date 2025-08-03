@@ -89,6 +89,13 @@ public class FeignClientHolder {
     }
 
     @Async
+    public Future<String> refreshToken(String token,String refreshToken) {
+        log.info("开始使用 refreshToken ...");
+        Result<String> result = ssoLoginClient.refresh(token, refreshToken);
+        return new AsyncResult<>(result.get());
+    }
+
+    @Async
     public Future<AuthCodePermissionDTO> authCodePermissions(String code) {
         Result<AuthCodePermissionDTO> res = upmsAuthCodeClient.getPermission(code);
         if (!res.isSuccess()) {

@@ -1,5 +1,6 @@
 package com.ch.cloud.gateway.service;
 
+import com.ch.Constants;
 import com.ch.cloud.gateway.conf.CookieConfig;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.utils.UserAuthUtils;
@@ -26,13 +27,13 @@ import java.util.concurrent.TimeUnit;
 @Service
 @Slf4j
 public class CookieRefreshService {
-    
+
     @Autowired
     private CookieConfig cookieConfig;
-    
+
     @Resource
     private org.redisson.api.RedissonClient redissonClient;
-    
+
     /**
      * 检查Cookie是否需要刷新
      *
@@ -43,7 +44,7 @@ public class CookieRefreshService {
         if (!cookieConfig.isAutoRefresh()) {
             return false;
         }
-        
+
         try {
             // 从Redis中获取用户信息
             String md5 = com.ch.utils.EncryptUtils.md5(token);
@@ -52,20 +53,20 @@ public class CookieRefreshService {
             if (!userBucket.isExists()) {
                 return false;
             }
-            
+
             UserInfo user = userBucket.get();
             if (user == null) {
                 return false;
             }
-            
+
             // 计算剩余时间
             long currentTime = System.currentTimeMillis();
             long expireTime = user.getExpireAt();
             long timeToExpire = expireTime - currentTime;
-            
+
             // 如果token在阈值时间内过期，则需要刷新
             boolean needRefresh = timeToExpire <= cookieConfig.getRefreshThreshold() * 1000L;
-            
+
             if (needRefresh && cookieConfig.isEnableLog()) {
                 log.debug("Cookie即将过期，剩余时间: {}秒", timeToExpire / 1000);
             }
@@ -80,7 +81,7 @@ public class CookieRefreshService {
         }
         return false;
     }
-    
+
     /**
      * 刷新Cookie
      *
@@ -93,20 +94,20 @@ public class CookieRefreshService {
             ResponseCookie newCookie = ResponseCookie.from(cookieConfig.getTokenName(), token)
                     .maxAge(cookieConfig.getMaxAge()).path(cookieConfig.getPath()).httpOnly(cookieConfig.isHttpOnly())
                     .secure(cookieConfig.isSecure()).build();
-            
+
             // 添加Cookie到响应头
             response.addCookie(newCookie);
-            
+
             if (cookieConfig.isEnableLog()) {
                 log.debug("Cookie已刷新，名称: {}, 过期时间: {}秒", cookieConfig.getTokenName(),
                         cookieConfig.getMaxAge());
             }
-            
+
         } catch (Exception e) {
             log.error("刷新Cookie时发生错误", e);
         }
     }
-    
+
     /**
      * 清除Cookie
      *
@@ -114,21 +115,25 @@ public class CookieRefreshService {
      */
     public void clearCookie(ServerHttpResponse response) {
         try {
-            
+
             ResponseCookie newCookie = ResponseCookie.from(cookieConfig.getTokenName(), "").maxAge(0)// 立即过期
                     .path(cookieConfig.getPath()).httpOnly(cookieConfig.isHttpOnly()).secure(cookieConfig.isSecure())
                     .build();
             response.addCookie(newCookie);
-            
+            ResponseCookie newCookie2 = ResponseCookie.from(Constants.X_REFRESH_TOKEN, "").maxAge(0)// 立即过期
+                    .path(cookieConfig.getPath()).httpOnly(cookieConfig.isHttpOnly()).secure(cookieConfig.isSecure())
+                    .build();
+            response.addCookie(newCookie2);
+
             if (cookieConfig.isEnableLog()) {
                 log.debug("Cookie已清除: {}", cookieConfig.getTokenName());
             }
-            
+
         } catch (Exception e) {
             log.error("清除Cookie时发生错误", e);
         }
     }
-    
+
     /**
      * 获取Cookie配置信息
      *
@@ -137,4 +142,13 @@ public class CookieRefreshService {
     public CookieConfig getCookieConfig() {
         return cookieConfig;
     }
-} 
+
+    public String refreshToken(String token, String refreshToken) {
+
+        if (!cookieConfig.isAutoRefresh()) {
+            return null;
+        }
+
+        return UserAuthUtils.refreshToken(token,refreshToken);
+    }
+}
