@@ -58,21 +58,6 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
             if (cookieRefreshService.needRefreshCookie(cookieToken)) {
                 log.debug("Cookie Token 即将过期，开始刷新，当前路径: {}", path);
                 cookieRefreshService.refreshCookie(exchange.getResponse(), cookieToken);
-            } else {
-                Boolean validated = UserAuthUtils.validateToken(cookieToken);
-                if (!validated) {
-                    log.debug("Cookie Token 已过期，开始刷新，当前路径: {}", path);
-                    String refreshToken = getCookieToken(exchange.getRequest(), Constants.X_REFRESH_TOKEN);
-                    String newToken = cookieRefreshService.refreshToken(cookieToken, refreshToken);
-
-                    if (CommonUtils.isNotEmpty(newToken)) {
-                        cookieRefreshService.refreshCookie(exchange.getResponse(), newToken);
-                        cookieToken = newToken;
-                    } else {
-                        cookieRefreshService.clearCookie(exchange.getResponse());
-                        return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
-                    }
-                }
             }
 
             // 将Cookie token添加到请求头中，供后续过滤器使用
@@ -82,6 +67,25 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
             ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
             log.debug("从Cookie中获取到token: {}，路径: {}", cookieToken, path);
             return chain.filter(mutableExchange);
+        } else {
+
+            log.debug("Cookie Token 已过期，开始刷新，当前路径: {}", path);
+            String refreshToken = getCookieToken(exchange.getRequest(), Constants.X_REFRESH_TOKEN);
+            String newToken = cookieRefreshService.refreshToken(cookieToken, refreshToken);
+
+            if (CommonUtils.isNotEmpty(newToken)) {
+                cookieRefreshService.refreshCookie(exchange.getResponse(), newToken);
+
+                // 将Cookie token添加到请求头中，供后续过滤器使用
+                ServerHttpRequest mutableReq = exchange.getRequest().mutate()
+                        .header(Constants.X_TOKEN, newToken)
+                        .build();
+                ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
+                log.debug("刷新token: {}，路径: {}", newToken, path);
+                return chain.filter(mutableExchange);
+            } else {
+                cookieRefreshService.clearCookie(exchange.getResponse());
+            }
         }
 
         // 没有Cookie token，继续下一个过滤器
