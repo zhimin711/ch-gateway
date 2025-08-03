@@ -4,6 +4,7 @@ import com.ch.Constants;
 import com.ch.cloud.gateway.conf.CookieConfig;
 import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.CookieRefreshService;
+import com.ch.cloud.gateway.utils.UserAuthUtils;
 import com.ch.cloud.upms.dto.PermissionDto;
 import com.ch.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -56,16 +57,18 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
                 log.debug("Cookie Token 即将过期，开始刷新，当前路径: {}", path);
                 cookieRefreshService.refreshCookie(exchange.getResponse(), cookieToken);
             } else {
-                log.debug("Cookie Token 已过期，开始刷新，当前路径: {}", path);
-                String refreshToken = getCookieToken(exchange.getRequest(), Constants.X_REFRESH_TOKEN);
-                String newToken = cookieRefreshService.refreshToken(cookieToken, refreshToken);
+                Boolean validated = UserAuthUtils.validateToken(cookieToken);
+                if (!validated) {
+                    log.debug("Cookie Token 已过期，开始刷新，当前路径: {}", path);
+                    String refreshToken = getCookieToken(exchange.getRequest(), Constants.X_REFRESH_TOKEN);
+                    String newToken = cookieRefreshService.refreshToken(cookieToken, refreshToken);
 
-                if (CommonUtils.isNotEmpty(newToken)) {
-                    cookieRefreshService.refreshCookie(exchange.getResponse(), newToken);
-                } else {
-                    cookieRefreshService.clearCookie(exchange.getResponse());
+                    if (CommonUtils.isNotEmpty(newToken)) {
+                        cookieRefreshService.refreshCookie(exchange.getResponse(), newToken);
+                    } else {
+                        cookieRefreshService.clearCookie(exchange.getResponse());
+                    }
                 }
-
             }
 
             // 将Cookie token添加到请求头中，供后续过滤器使用

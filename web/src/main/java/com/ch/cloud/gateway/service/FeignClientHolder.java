@@ -63,22 +63,29 @@ public class FeignClientHolder {
     @Async
     public Future<Result<UserInfo>> tokenInfo(String token) {
         log.info("开始获取 user info ...");
-        Result<UserInfo> r1 = ssoLoginClient.info(token);
-        if (!r1.isEmpty()) {
-            Result<UserInfo> r2 = ssoUserClient.info(r1.get().getUsername());
-            if (!r2.isEmpty()) {
-                r1.get().setUserId(r2.get().getUserId());
-                r1.get().setRoleId(r2.get().getRoleId());
-                r1.get().setTenantId(r2.get().getTenantId());
+        Result<UserInfo> loginResult = ssoLoginClient.info(token);
+        if (!loginResult.isEmpty()) {
+            Result<UserInfo> userResult = ssoUserClient.info(loginResult.get().getUsername());
+            if (!userResult.isEmpty()) {
+                loginResult.get().setUserId(userResult.get().getUserId());
+                loginResult.get().setRoleId(userResult.get().getRoleId());
+                loginResult.get().setTenantId(userResult.get().getTenantId());
             } else {
-                log.error("获取 user info 错误！{}", r2.getMessage());
-                r1.setCode(r2.getCode());
-                r1.setMessage(r2.getMessage());
+                log.error("获取 user info 错误！{}", userResult.getMessage());
+                loginResult.setCode(userResult.getCode());
+                loginResult.setMessage(userResult.getMessage());
             }
         } else {
-            log.error("获取 login info 失败！{}", r1.getMessage());
+            log.error("获取 login info 失败！{}", loginResult.getMessage());
         }
-        return new AsyncResult<>(r1);
+        return new AsyncResult<>(loginResult);
+    }
+
+    @Async
+    public Future<Boolean> tokenValid(String token) {
+        log.info("开始使用 tokenValid ...");
+        Result<Boolean> validResult = ssoLoginClient.validate(token);
+        return new AsyncResult<>(validResult.get());
     }
 
     @Async

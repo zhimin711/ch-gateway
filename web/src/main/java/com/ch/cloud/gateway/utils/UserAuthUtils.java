@@ -155,6 +155,16 @@ public class UserAuthUtils {
         return null;
     }
 
+    public static Boolean validateToken(String token) {
+        try {
+            Future<Boolean> booleanFuture = feignClientHolder.tokenValid(token);
+            return booleanFuture.get();
+        } catch (Exception e) {
+            log.error("[单点登录系统]验证Token", e);
+        }
+        return false;
+    }
+
     public static RoleDto getRoleInfo(String username, Long roleId) {
         try {
             Future<RoleDto> future = feignClientHolder.userRole(username, roleId);
