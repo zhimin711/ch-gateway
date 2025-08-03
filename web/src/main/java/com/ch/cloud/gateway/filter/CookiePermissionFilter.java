@@ -6,6 +6,8 @@ import com.ch.cloud.gateway.pojo.CacheType;
 import com.ch.cloud.gateway.service.CookieRefreshService;
 import com.ch.cloud.gateway.utils.UserAuthUtils;
 import com.ch.cloud.upms.dto.PermissionDto;
+import com.ch.e.PubError;
+import com.ch.result.Result;
 import com.ch.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,8 +67,10 @@ public class CookiePermissionFilter extends AbstractPermissionFilter {
 
                     if (CommonUtils.isNotEmpty(newToken)) {
                         cookieRefreshService.refreshCookie(exchange.getResponse(), newToken);
+                        cookieToken = newToken;
                     } else {
                         cookieRefreshService.clearCookie(exchange.getResponse());
+                        return UserAuthUtils.authError(exchange.getResponse(), Result.error(PubError.NOT_LOGIN, "未登录，请先登陆..."));
                     }
                 }
             }
