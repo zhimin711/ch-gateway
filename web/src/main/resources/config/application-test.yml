@@ -1,0 +1,104 @@
+server:
+  port: 8080
+
+jasypt:
+  encryptor:
+    password: abc123
+#    algorithm: PBEWithMD5AndDES
+spring:
+  redis:
+    ##
+    jedis:
+      pool:
+        ### 连接池最大连接数（使用负值表示没有限制）
+        max-active: 9
+        ### 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: -1
+        ### 连接池中的最大空闲连接
+        max-idle: 9
+        ### 连接池中的最小空闲连接
+        min-idle: 0
+    ### 连接超时时间（毫秒）
+    timeout: 60000
+    ### Redis数据库索引(默认为0)
+    host: redis-master.redis.svc.cluster.local
+    port: 6379
+    password: admin123
+    database: 0
+#    sentinel:
+#      master: SHIVA_TRTMS_GROUND_REDIS_SESSION_C01
+#      nodes:
+#        - trtms-ground-session1.cachesit.sfdc.com.cn:8001
+#        - trtms-ground-session2.cachesit.sfdc.com.cn:8001
+#        - trtms-ground-session3.cachesit.sfdc.com.cn:8001
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  #API网关配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://mysql.nacos.svc.cluster.local:3306/ch_gateway
+    username: admin
+    password: 123456
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: DatebookHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true  #表明gateway开启服务注册和发现的功能，并且spring cloud gateway自动根据服务发现为每一个服务创建了一个router，这个router将以服务名开头的请求路径转发到对应的服务。
+          lowerCaseServiceId: true   #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了），比如以/service-hi/*的请求路径被路由转发到服务名为service-hi的服务上。
+          filters:
+            - StripPrefix=1
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY
+            series: SERVER_ERROR
+        - name: Hystrix
+          args:
+            name: fallbackcmd
+            fallbackUri: forward:/fallback
+#      loadBalanced: true
+##############end#####################
+####超时配置####
+ribbon:
+  ReadTimeout: 10000
+  ConnectTimeout: 10000
+  MaxAutoRetries: 1
+  MaxAutoRetriesNextServer: 2
+  http:
+    client:
+      enabled: true
+hystrix:
+  command:
+    default:
+      execution:
+        timeout:
+          enabled: true
+        isolation:
+          thread:
+            timeoutInMilliseconds: 600000
+###超时配置###
+
+logging:
+  config: classpath:config/logback-test.xml
+  level:
+    com.ch: debug
+    org.springframework.cloud: info
+    com.alibaba.nacos: warn
+rocketmq:
+  name-server: rmqnamesrv.rocket-mq.svc.cluster.local:9876 # 自己的RocketMQ服务地址
+  producer:
+    send-message-timeout: 300000
+    group: ch-gateway

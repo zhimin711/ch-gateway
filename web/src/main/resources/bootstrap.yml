@@ -1,0 +1,36 @@
+
+nacos:
+  config:
+    namespace: cloud-dev
+    server-addr: 192.168.150.203:8848
+spring:
+  application:
+    name: ch-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${nacos.config.server-addr}
+        namespace: ${nacos.config.namespace:}
+      config:
+#        enabled: false
+        group: ${spring.application.name}
+        server-addr: ${nacos.config.server-addr}
+        namespace: ${nacos.config.namespace:}
+        shared-configs:
+          -
+            dataId: ${spring.application.name}.yml
+            refresh: true
+            group: ${spring.application.name}
+#    sentinel:
+#      transport:
+#        dashboard: 192.168.199.194:8800
+#        port: 8800
+#      # 服务启动直接建立心跳连接
+#      eager: true
+#      datasource:
+#        ds1:
+#          nacos:
+#            server-addr: ${nacos.config.server-addr}
+#            dataId: ${spring.application.name}-flow-rules.json
+#            data-type: json
+#            rule-type: flow

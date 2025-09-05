@@ -1,0 +1,5 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: local   # 指定启动环境

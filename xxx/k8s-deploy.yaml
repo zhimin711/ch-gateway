@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ch-gateway
+  namespace: ch
+  labels:
+    app: ch-gateway
+  annotations:
+    kubesphere.io/creator: zhimin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ch-gateway
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ch-gateway
+    spec:
+      containers:
+        - name: container-h4jxja
+          image: 'registry.kubeoperator.io:8082/ch/ch-gateway:${DATETIME}'
+          ports:
+            - name: tcp-8080
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: JAVA_OPTS
+              value: >-
+                -Dnacos.config.server-addr=nacos.public.svc.cluster.local:8848
+                -Dnacos.config.namespace=4da0a4df-ea8e-4906-b53f-8e30884e1346
+      imagePullSecrets:
+        - name: ch-nexus

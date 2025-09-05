@@ -1,0 +1,79 @@
+package com.ch.cloud.gateway.mq;
+
+import com.ch.cloud.gateway.pojo.CacheType;
+import com.ch.cloud.sso.pojo.UserInfo;
+import com.ch.cloud.upms.dto.PermissionDto;
+import com.ch.pojo.KeyValue;
+import com.ch.utils.CommonUtils;
+import com.ch.utils.EncryptUtils;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.redisson.api.RBucket;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
+import org.redisson.codec.JsonJacksonCodec;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.util.List;
+
+/**
+ * 描述：消息清理网关缓存
+ *
+ * @author Zhimin.Ma
+ * @since 2022/5/25
+ */
+@ConditionalOnProperty(prefix = "rocketmq", name = "enabled", havingValue = "true")
+@Component
+@RocketMQMessageListener(consumerGroup = "${spring.application.name}-${spring.profiles.active}-1", topic = "gateway-clean")
+public class NotifyCleanReceiver implements RocketMQListener<KeyValue> {
+
+    @Resource
+    private RedissonClient redissonClient;
+
+    @Override
+    public void onMessage(KeyValue keyValue) {
+        if (CommonUtils.isEmptyOr(keyValue.getKey(), keyValue.getValue())) {
+            return;
+        }
+        switch (keyValue.getKey()) {
+            case "permissions":
+                cleanPermissions(keyValue);
+                break;
+            case "users":
+                cleanUsers(keyValue);
+                break;
+        }
+    }
+
+    /**
+     * 将已失效的token用户清除
+     *
+     * @param keyValue 用户token
+     */
+    private void cleanUsers(KeyValue keyValue) {
+        RBucket<String> tokenBucket = redissonClient.getBucket(CacheType.GATEWAY_USER.key(keyValue.getValue()),
+                StringCodec.INSTANCE);
+        String md5Token = tokenBucket.get();
+        RBucket<UserInfo> userBucket = redissonClient.getBucket(CacheType.GATEWAY_TOKEN.key(md5Token), JsonJacksonCodec.INSTANCE);
+        if (userBucket.isExists()) {
+            userBucket.delete();
+        }
+    }
+
+    /**
+     * 将刷新角色对应的权限
+     *
+     * @param keyValue 权限（角色）
+     */
+    private void cleanPermissions(KeyValue keyValue) {
+        RMapCache<String, List<PermissionDto>> permissionsMap = redissonClient.getMapCache(CacheType.PERMISSIONS_MAP.key(), JsonJacksonCodec.INSTANCE);
+        if (permissionsMap.containsKey(keyValue.getValue())) {
+            permissionsMap.remove(keyValue.getValue());
+        } else {
+            permissionsMap.clear();
+        }
+    }
+}

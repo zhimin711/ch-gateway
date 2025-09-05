@@ -32,4 +32,5 @@ out/
 .vscode/
 
 logs/
-out/
+target/
+*.log
