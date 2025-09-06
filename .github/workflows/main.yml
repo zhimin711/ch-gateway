@@ -50,10 +50,19 @@ jobs:
           DATETIME=$(date +'%Y%m%d%H%M%S')
           echo "IMG_NAME=${APP_NAME}:${DATETIME}" >> $GITHUB_ENV
           echo "FULL_IMAGE=${IMG_NAMESPACE}/${APP_NAME}:${DATETIME}" >> $GITHUB_ENV
-
+          
+      - name: Extract revision from POM
+        id: extract_revision
+        run: |
+          REVISION=$(mvn help:evaluate -Dexpression=revision -q -DforceStdout)
+          echo "Revision is $REVISION"
+          JAR_FILE="${APP_NAME}-${REVISION}.jar"
+          echo "JAR_FILE=$JAR_FILE" >> $GITHUB_ENV
+          sed -i "s|ARG JAR_FILE=./app.jar|ARG JAR_FILE=./$JAR_FILE|" web/src/main/docker/Dockerfile
+          
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.IMG_NAME }} -f web/src/main/docker/Dockerfile .
+          docker build -t ${{ env.IMG_NAME }} -f web/src/main/docker/Dockerfile web/target
           docker tag ${{ env.IMG_NAME }} ${{ env.FULL_IMAGE }}
 
       - name: Log in to Docker Hub
